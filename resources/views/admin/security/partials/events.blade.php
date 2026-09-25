@@ -1,6 +1,6 @@
 <div class="space-y-3 lg:hidden">
     @forelse($events as $event)
-        <div class="bg-white p-4 shadow-sm ring-1 ring-secondary-shade/5 dark:bg-[#16201f] dark:ring-white/5">
+        <div class="bg-white p-4 border border-secondary-shade/10 dark:bg-[#16201f] dark:border-white/10">
             <div class="flex items-center justify-between gap-3">
                 <x-status-pill :tone="\App\Models\SecurityEvent::SEVERITY_TONES[$event->severity] ?? 'neutral'" :label="\App\Models\SecurityEvent::TYPES[$event->type] ?? $event->type" />
                 <span class="shrink-0 text-xs text-grey dark:text-white/40">{{ $event->created_at->format('d/m/Y H:i') }}</span>
@@ -13,7 +13,7 @@
             </dl>
         </div>
     @empty
-        <div class="bg-white px-6 py-10 text-center text-sm text-grey shadow-sm ring-1 ring-secondary-shade/5 dark:bg-[#16201f] dark:text-white/40 dark:ring-white/5">Aucun événement pour le moment.</div>
+        <div class="bg-white px-6 py-10 text-center text-sm text-grey border border-secondary-shade/10 dark:bg-[#16201f] dark:text-white/40 dark:border-white/10">Aucun événement pour le moment.</div>
     @endforelse
 </div>
 

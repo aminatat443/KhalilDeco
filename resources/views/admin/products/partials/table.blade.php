@@ -2,7 +2,7 @@
      on affiche l'essentiel en carte et on renvoie vers la fiche pour le reste. --}}
 <div class="space-y-3 lg:hidden">
     @forelse($products as $product)
-        <div onclick="window.location='{{ route('admin.products.edit', $product) }}'" class="cursor-pointer bg-white p-4 shadow-sm ring-1 ring-secondary-shade/5 dark:bg-[#16201f] dark:ring-white/5">
+        <div onclick="window.location='{{ route('admin.products.edit', $product) }}'" class="cursor-pointer bg-white p-4 border border-secondary-shade/10 dark:bg-[#16201f] dark:border-white/10">
             <div class="flex items-center gap-3">
                 <div class="h-14 w-12 shrink-0 overflow-hidden bg-grey-tint dark:bg-white/10">
                     @if($image = $product->images->first()?->url)
@@ -13,7 +13,7 @@
                     <p class="truncate font-medium text-secondary-shade dark:text-white">{{ $product->name }}</p>
                     <p class="text-xs text-grey dark:text-white/50">{{ $product->category->name ?? '—' }}</p>
                 </div>
-                <span class="shrink-0 text-xs {{ $product->is_active ? 'text-primary' : 'text-grey dark:text-white/40' }}">{{ $product->is_active ? 'Actif' : 'Désactivé' }}</span>
+                <x-status-pill :tone="$product->is_active ? 'green' : 'neutral'" :label="$product->is_active ? 'Actif' : 'Désactivé'" class="shrink-0" />
             </div>
             <div class="mt-3 flex items-center justify-between border-t border-secondary-shade/10 pt-3 text-xs dark:border-white/10">
                 <span class="text-secondary-shade dark:text-white">
@@ -46,11 +46,14 @@
             </div>
         </div>
     @empty
-        <div class="bg-white px-6 py-10 text-center text-sm text-grey shadow-sm ring-1 ring-secondary-shade/5 dark:bg-[#16201f] dark:text-white/40 dark:ring-white/5">Aucun produit ne correspond à ces critères.</div>
+        <div class="flex flex-col items-center gap-3 border border-secondary-shade/10 bg-white px-6 py-14 text-center dark:border-white/10 dark:bg-[#16201f]">
+            <span class="flex h-11 w-11 items-center justify-center border border-secondary-shade/10 text-grey/50 dark:border-white/10 dark:text-white/30"><i class="fa-solid fa-boxes-stacked"></i></span>
+            <p class="text-sm text-grey dark:text-white/40">Aucun produit ne correspond à ces critères.</p>
+        </div>
     @endforelse
 </div>
 
-<div class="hidden overflow-x-auto bg-white shadow-sm ring-1 ring-secondary-shade/5 dark:bg-[#16201f] dark:ring-white/5 lg:block">
+<div class="hidden overflow-x-auto bg-white border border-secondary-shade/10 dark:bg-[#16201f] dark:border-white/10 lg:block">
     <table class="w-full text-sm">
         <thead>
             <tr class="border-b border-secondary-shade/10 text-left text-xs uppercase tracking-[0.1em] text-grey dark:border-white/10 dark:text-white/40">
@@ -75,17 +78,17 @@
                         <span class="font-medium text-secondary-shade dark:text-white">{{ $product->name }}</span>
                     </td>
                     <td class="px-6 py-4 text-grey dark:text-white/50">{{ $product->category->name ?? '—' }}</td>
-                    <td class="px-6 py-4 text-secondary-shade dark:text-white">
+                    <td class="whitespace-nowrap px-6 py-4 text-secondary-shade dark:text-white">
                         {{ number_format($product->price, 0, ',', ' ') }} FCFA
                         @if($product->is_promo && $product->old_price)
                             <span class="ml-1 text-xs text-grey/60 line-through dark:text-white/30">{{ number_format($product->old_price, 0, ',', ' ') }}</span>
                         @endif
                     </td>
-                    <td class="px-6 py-4 text-secondary-shade dark:text-white">
+                    <td class="whitespace-nowrap px-6 py-4 text-secondary-shade dark:text-white">
                         {{ $product->variants_count > 0 ? $product->variants_count.' variante(s)' : $product->stock }}
                     </td>
                     <td class="px-6 py-4">
-                        <span class="text-xs {{ $product->is_active ? 'text-primary' : 'text-grey dark:text-white/40' }}">{{ $product->is_active ? 'Actif' : 'Désactivé' }}</span>
+                        <x-status-pill :tone="$product->is_active ? 'green' : 'neutral'" :label="$product->is_active ? 'Actif' : 'Désactivé'" />
                     </td>
                     <td class="px-6 py-4" onclick="event.stopPropagation()">
                         <div class="flex items-center gap-3">
@@ -111,7 +114,12 @@
                 </tr>
             @empty
                 <tr>
-                    <td colspan="7" class="px-6 py-10 text-center text-grey dark:text-white/40">Aucun produit ne correspond à ces critères.</td>
+                    <td colspan="7" class="px-6 py-14">
+                        <div class="flex flex-col items-center gap-3 text-center">
+                            <span class="flex h-11 w-11 items-center justify-center border border-secondary-shade/10 text-grey/50 dark:border-white/10 dark:text-white/30"><i class="fa-solid fa-boxes-stacked"></i></span>
+                            <p class="text-sm text-grey dark:text-white/40">Aucun produit ne correspond à ces critères.</p>
+                        </div>
+                    </td>
                 </tr>
             @endforelse
         </tbody>

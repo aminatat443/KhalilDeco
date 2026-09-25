@@ -187,6 +187,55 @@ Remplace la palette provisoire de la section 6 du cahier des charges.
     --color-grey-shade: #212529;
 }
 ```
+\Pour Khalil Building, je te recommande une palette sobre, architecturale et premium, avec le blanc dominant.
+
+🎨 Palette principale
+Couleur	Code HEX	Utilisation
+🤍 Blanc	#FFFFFF	Fond principal, espaces
+🟢 Vert profond	#263F3A	Couleur principale, logo, navigation
+⚫ Anthracite	#252525	Texte, titres, éléments forts
+🟡 Sable	#C8A875	Petit accent, détails, CTA secondaires
+◻️ Ivoire	#F5F3EE	Sections secondaires
+◽ Gris clair	#E5E2DA	Bordures, séparateurs
+🔘 Gris moyen	#6B6B67	Texte secondaire
+
+🏗️ Répartition que je conseille
+
+60 % — Blanc #FFFFFF
+→ arrière-plans et espace visuel
+
+20 % — Ivoire #F5F3EE
+→ sections, fonds alternatifs
+
+10 % — Vert profond #263F3A
+→ identité, navigation, boutons principaux
+
+7 % — Anthracite #252525
+→ textes et titres
+
+3 % — Sable #C8A875
+→ touches premium
+
+Pour le logo
+
+Je ferais :
+
+KHALIL → #252525
+BUILDING → #263F3A
+Symbole architectural → #263F3A avec une petite touche #C8A875
+
+Le sable doit vraiment rester une petite touche, sinon le logo risque de devenir trop "luxe/décoration".
+
+Pour le site
+
+Fond : #FFFFFF
+Sections : #F5F3EE
+Titres : #252525
+Texte : #6B6B67
+Bouton principal : #263F3A
+Hover : #1D302C
+Accent : #C8A875
+Bordures : #E5E2DA
 
 *Note : palette confirmée par le client (corail/dark slate/sable), cohérente avec le positionnement "Mode & Lifestyle" de la section 66. En place dans `resources/css/app.css` et utilisée dans toutes les vues via les classes Tailwind générées automatiquement (`bg-primary`, `text-secondary-shade`, etc.) — aucun code hex brut dans les templates Blade. Les usages de texte accent sur fond clair ont été audités et basculés de `text-tertiary` vers `text-primary` (meilleur contraste, voir règle ci-dessus) ; les gris de contenu (légendes, paragraphes) utilisent `text-grey` plutôt que l'échelle grise par défaut de Tailwind — les bordures/fonds fonctionnels de formulaires (inputs, cases à cocher) restent en gris Tailwind neutre, un choix d'UI et non de marque.*
 

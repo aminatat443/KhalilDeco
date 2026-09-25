@@ -2,13 +2,19 @@
 
 namespace App\Services;
 
+use App\Mail\OrderConfirmationMail;
 use App\Models\Coupon;
+use App\Models\Delivery;
 use App\Models\Order;
 use App\Models\Product;
 use App\Models\ProductVariant;
 use App\Models\User;
+use App\Notifications\NewOrderNotification;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Notification;
 use RuntimeException;
+use Throwable;
 
 class OrderService
 {
@@ -23,7 +29,13 @@ class OrderService
      * Ne décrémente pas le stock ici — cela se fait uniquement à la confirmation (docs/SPEC.md §2.3/§2.4),
      * un article au panier n'est jamais réservé.
      */
-    public function createFromCart(array $customer, array $delivery, string $paymentMethod, int $deliveryFee, ?Coupon $coupon = null): Order
+    /**
+     * $deliveryZone est la SEULE source du tarif et du nom de zone appliqués (Configuration →
+     * Zones et tarifs de livraison) — jamais un montant recalculé ou codé ailleurs. Son nom et
+     * son tarif sont figés sur la commande au moment de la création (delivery_zone/delivery_fee)
+     * : une modification ultérieure de la zone n'affecte jamais les commandes déjà passées.
+     */
+    public function createFromCart(array $customer, array $delivery, string $paymentMethod, Delivery $deliveryZone, ?Coupon $coupon = null): Order
     {
         $items = $this->cart->items();
 
@@ -33,17 +45,20 @@ class OrderService
 
         $subtotal = array_sum(array_column($items, 'subtotal'));
         $discount = $coupon ? $this->promotions->couponDiscount($coupon, $subtotal) : 0;
+        $deliveryFee = $deliveryZone->fee;
 
-        return DB::transaction(function () use ($items, $customer, $delivery, $paymentMethod, $deliveryFee, $coupon, $subtotal, $discount) {
+        return DB::transaction(function () use ($items, $customer, $delivery, $paymentMethod, $deliveryZone, $deliveryFee, $coupon, $subtotal, $discount) {
             $order = Order::create([
                 'order_number' => $this->generateOrderNumber(),
                 'user_id' => $customer['user_id'] ?? null,
                 'address_id' => $delivery['address_id'] ?? null,
                 'coupon_id' => $coupon?->id,
+                'delivery_id' => $deliveryZone->id,
                 'customer_name' => $customer['name'],
                 'customer_phone' => $customer['phone'],
                 'customer_email' => $customer['email'],
                 'delivery_region' => $delivery['region'],
+                'delivery_zone' => $deliveryZone->zone,
                 'delivery_city' => $delivery['city'],
                 'delivery_quartier' => $delivery['quartier'] ?? null,
                 'delivery_address' => $delivery['address'],
@@ -54,7 +69,12 @@ class OrderService
                 'total' => max(0, $subtotal + $deliveryFee - $discount),
                 'payment_method' => $paymentMethod,
                 'payment_status' => 'pending',
-                'status' => 'recue',
+                // Paiement en ligne : la commande reste "en_attente_paiement" — jamais "recue",
+                // qui laisserait croire à l'équipe qu'elle est prête à traiter — tant que le
+                // paiement n'est pas confirmé par le serveur (voir confirm(), appelé uniquement
+                // après vérification webhook/IPN). Le paiement à la livraison, jamais bloquant,
+                // reste "recue" dès la création comme avant.
+                'status' => $paymentMethod === 'cod' ? 'recue' : 'en_attente_paiement',
             ]);
 
             foreach ($items as $item) {
@@ -102,7 +122,7 @@ class OrderService
 
             foreach ($items as $line) {
                 $product = Product::findOrFail($line['product_id']);
-                $variant = ($line['variant_id'] ?? null) ? ProductVariant::findOrFail($line['variant_id']) : null;
+                $variant = ($line['variant_id'] ?? null) ? ProductVariant::with('attributeValues.attribute')->findOrFail($line['variant_id']) : null;
                 $quantity = max(1, (int) $line['quantity']);
                 $unitPrice = $this->promotions->effectivePrice($product, $variant);
 
@@ -134,6 +154,16 @@ class OrderService
                 'payment_status' => 'paid',
                 'is_in_store' => true,
                 'status' => 'recue',
+            ]);
+
+            // L'encaissement est immédiat et certain pour une vente en boutique — contrairement à
+            // payment_status (un simple statut sur la commande), ceci laisse une vraie trace dans
+            // `payments`, seule source fiable pour la caisse, la comptabilité et le rapprochement.
+            $order->payments()->create([
+                'provider' => 'especes',
+                'amount' => $subtotal,
+                'status' => 'success',
+                'paid_at' => now(),
             ]);
 
             foreach ($lines as $line) {
@@ -213,6 +243,23 @@ class OrderService
     }
 
     /**
+     * Email de confirmation au client + notification à l'équipe — appelé une seule fois par
+     * commande réellement engagée : immédiatement pour le paiement à la livraison, seulement
+     * après confirmation du paiement (IPN PayTech) pour un paiement en ligne, pour ne jamais
+     * notifier l'équipe d'une commande jamais payée.
+     */
+    public function notifyPlaced(Order $order): void
+    {
+        try {
+            Mail::to($order->customer_email)->send(new OrderConfirmationMail($order));
+        } catch (Throwable $e) {
+            report($e);
+        }
+
+        Notification::send(User::staff()->get(), new NewOrderNotification($order));
+    }
+
+    /**
      * Rattache au compte les commandes passées en tant qu'invité (sans compte), en les
      * retrouvant par email ou numéro de téléphone — dès la connexion, l'inscription, ou
      * l'ajout d'un numéro de téléphone (adresse par défaut, commande) sur un compte existant.
@@ -237,10 +284,6 @@ class OrderService
 
     private function variantLabel(?ProductVariant $variant): ?string
     {
-        if (! $variant) {
-            return null;
-        }
-
-        return collect([$variant->color?->name, $variant->size?->name])->filter()->implode(' / ');
+        return $variant?->labelOrNull();
     }
 }

@@ -10,7 +10,7 @@
 
 @section('modal')
 
-<h1 class="font-display text-3xl font-normal italic text-secondary-shade dark:text-white">Vente en boutique</h1>
+<h1 class="pr-10 text-2xl font-semibold text-secondary-shade dark:text-white">Vente en boutique</h1>
 <p class="mt-2 text-sm text-grey dark:text-white/40">Enregistrez une vente conclue directement en magasin — le stock est décrémenté immédiatement et une facture est générée comme pour une commande en ligne.</p>
 
 <form
@@ -139,7 +139,7 @@
             </p>
         </div>
 
-        <div class="mt-4 grid gap-4 sm:grid-cols-3">
+        <div class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
             <div>
                 <label class="mb-1.5 block text-xs font-semibold uppercase tracking-[0.15em] text-secondary-shade dark:text-white/70">Nom complet</label>
                 <input x-ref="customerName" type="text" name="customer_name" value="{{ old('customer_name') }}" required class="w-full border border-secondary-shade/15 bg-white px-3.5 py-2.5 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/15 dark:border-white/10 dark:bg-white/5 dark:text-white">
@@ -213,7 +213,7 @@
                                 required
                                 class="w-full border border-secondary-shade/15 bg-white px-3.5 py-2.5 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/15 dark:border-white/10 dark:bg-white/5 dark:text-white"
                             >
-                                <option value="">— Taille / couleur —</option>
+                                <option value="">— Choisir une option —</option>
                                 <template x-for="v in product(line.productId).variants" :key="v.id">
                                     <option :value="v.id" :disabled="v.stock <= 0" x-text="v.label + (v.stock <= 0 ? ' (rupture)' : ' — ' + v.stock + ' en stock')"></option>
                                 </template>
@@ -247,13 +247,13 @@
 
         <div class="mt-5 flex items-center justify-between border-t border-secondary-shade/10 pt-5 dark:border-white/10">
             <span class="text-xs font-semibold uppercase tracking-[0.15em] text-secondary-shade dark:text-white/70">Total</span>
-            <span class="font-display text-2xl italic text-secondary-shade dark:text-white"><span x-text="format(total)"></span> FCFA</span>
+            <span class="text-2xl font-semibold text-secondary-shade dark:text-white"><span x-text="format(total)"></span> FCFA</span>
         </div>
     </div>
 
     <div class="flex flex-col-reverse gap-3 pt-2 sm:flex-row sm:items-center sm:gap-4">
         <a href="{{ route('admin.orders.index') }}" class="w-full px-8 py-4 text-center text-xs font-semibold uppercase tracking-[0.15em] text-secondary-shade transition hover:text-primary dark:text-white/70 sm:w-auto">Annuler</a>
-        <button type="submit" class="w-full whitespace-nowrap bg-secondary-shade px-8 py-4 text-xs font-semibold uppercase tracking-[0.15em] text-white shadow-sm transition hover:bg-primary hover:shadow-md sm:w-auto">
+        <button type="submit" class="w-full whitespace-nowrap bg-primary px-8 py-4 text-xs font-semibold uppercase tracking-[0.15em] text-white shadow-sm transition hover:bg-primary-shade hover:shadow-md sm:w-auto">
             Enregistrer la vente
         </button>
     </div>

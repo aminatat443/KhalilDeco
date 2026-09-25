@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Commande — KhalilShop')
+@section('title', 'Commande — Khalil Déco')
 
 @section('content')
 <div
@@ -9,6 +9,7 @@
         step: {{ $errors->has('payment_method') || $errors->has('coupon_code') ? 3 : (auth()->check() && $defaultAddress && $matchedDelivery ? 3 : (auth()->check() && $defaultAddress ? 2 : 1)) }},
         deliveryId: {{ old('delivery_id', $matchedDelivery->id ?? 'null') }},
         deliveryFee: {{ old('delivery_id') ? ($deliveries->firstWhere('id', old('delivery_id'))?->fee ?? 0) : ($matchedDelivery->fee ?? 0) }},
+        paymentMethod: '{{ old('payment_method', 'cod') }}',
         zones: @js($deliveries->map(fn ($d) => ['id' => $d->id, 'zone' => $d->zone, 'fee' => $d->fee])->values()),
         locating: false,
         locationError: null,
@@ -249,20 +250,43 @@
             <h2 class="text-xs font-semibold uppercase tracking-[0.2em] text-grey">Étape 3 — Paiement</h2>
 
             <div class="mt-6 space-y-3">
+                @php
+                    // Wave/Orange Money/Carte passent par PayTech (voir PaymentDispatcher).
+                    // Djamo/Free Money (PayDunya) restent fonctionnels côté serveur mais ne sont
+                    // plus affichés ici — retirer ces deux lignes suffit à les faire réapparaître.
+                    $paytechAvailable = (bool) config('services.paytech.key');
+                    $onlineMethods = [
+                        'wave' => ['label' => 'Wave', 'available' => $paytechAvailable, 'logo' => 'wave.svg'],
+                        'orange_money' => ['label' => 'Orange Money', 'available' => $paytechAvailable, 'logo' => 'orange-money.svg'],
+                        'carte' => ['label' => 'Carte bancaire', 'available' => $paytechAvailable, 'logo' => 'carte.svg'],
+                    ];
+                @endphp
+                @foreach($onlineMethods as $value => $method)
+                    @if($method['available'])
+                        <label class="flex cursor-pointer items-center gap-3 border border-secondary-shade/15 px-5 py-4 has-[:checked]:border-secondary-shade">
+                            <input type="radio" name="payment_method" value="{{ $value }}" x-model="paymentMethod" required class="h-4 w-4 shrink-0 text-primary focus:ring-primary">
+                            <img src="{{ asset('images/payment-logos/'.$method['logo']) }}" alt="{{ $method['label'] }}" class="h-6 w-6 shrink-0 object-contain">
+                            <span class="text-sm text-secondary-shade">{{ $method['label'] }}</span>
+                        </label>
+                    @else
+                        <label class="flex cursor-not-allowed items-center justify-between border border-secondary-shade/10 px-5 py-4 opacity-40">
+                            <span class="flex items-center gap-3">
+                                <input type="radio" disabled class="h-4 w-4 shrink-0">
+                                <img src="{{ asset('images/payment-logos/'.$method['logo']) }}" alt="{{ $method['label'] }}" class="h-6 w-6 shrink-0 object-contain grayscale">
+                                <span class="text-sm text-secondary-shade">{{ $method['label'] }}</span>
+                            </span>
+                            <span class="text-xs uppercase tracking-[0.1em] text-grey">Bientôt disponible</span>
+                        </label>
+                    @endif
+                @endforeach
+
                 <label class="flex cursor-pointer items-center gap-3 border border-secondary-shade/15 px-5 py-4 has-[:checked]:border-secondary-shade">
-                    <input type="radio" name="payment_method" value="cod" checked required class="h-4 w-4 text-primary focus:ring-primary">
+                    <input type="radio" name="payment_method" value="cod" x-model="paymentMethod" required class="h-4 w-4 shrink-0 text-primary focus:ring-primary">
+                    <span class="flex h-6 w-6 shrink-0 items-center justify-center bg-secondary-shade text-white">
+                        <i class="fa-solid fa-truck text-[11px]"></i>
+                    </span>
                     <span class="text-sm text-secondary-shade">Paiement à la livraison</span>
                 </label>
-
-                @foreach(['wave' => 'Wave', 'orange_money' => 'Orange Money', 'carte' => 'Carte bancaire'] as $value => $label)
-                    <label class="flex cursor-not-allowed items-center justify-between border border-secondary-shade/10 px-5 py-4 opacity-40">
-                        <span class="flex items-center gap-3">
-                            <input type="radio" disabled class="h-4 w-4">
-                            <span class="text-sm text-secondary-shade">{{ $label }}</span>
-                        </span>
-                        <span class="text-xs uppercase tracking-[0.1em] text-grey">Bientôt disponible</span>
-                    </label>
-                @endforeach
             </div>
 
             <div class="mt-8">
@@ -311,7 +335,12 @@
                 <span class="font-display text-xl italic text-secondary-shade" x-text="new Intl.NumberFormat('fr-FR').format($store.cart.subtotal + deliveryFee) + ' FCFA' + (deliveryFee === 0 ? ' + livraison' : '')"></span>
             </div>
 
-            <p class="mt-4 text-xs text-grey">Paiement à la livraison. Vous recevrez un appel de confirmation avant l'expédition.</p>
+            <template x-if="paymentMethod === 'cod'">
+                <p class="mt-4 text-xs text-grey">Paiement à la livraison. Vous recevrez un appel de confirmation avant l'expédition.</p>
+            </template>
+            <template x-if="paymentMethod !== 'cod'">
+                <p class="mt-4 text-xs text-grey">Vous serez redirigé vers la page de paiement sécurisée pour finaliser votre commande. Elle ne sera confirmée qu'une fois le paiement effectivement reçu.</p>
+            </template>
             <template x-if="deliveryFee === 0">
                 <p class="mt-2 text-xs text-primary">
                     <i class="fa-brands fa-whatsapp mr-1"></i>Nous vous contacterons sur WhatsApp pour confirmer le tarif et le délai de livraison.
@@ -320,7 +349,11 @@
 
             <div class="mt-10 flex gap-4">
                 <button type="button" @click="prev()" class="px-8 py-4 text-xs font-semibold uppercase tracking-[0.15em] text-secondary-shade transition hover:text-primary">Retour</button>
-                <button type="submit" class="bg-secondary-shade px-8 py-4 text-xs font-semibold uppercase tracking-[0.15em] text-white transition hover:bg-primary">Confirmer la commande</button>
+                <button
+                    type="submit"
+                    class="bg-primary px-8 py-4 text-xs font-semibold uppercase tracking-[0.15em] text-white transition hover:bg-primary-shade"
+                    x-text="paymentMethod === 'cod' ? 'Confirmer la commande' : ('Payer ' + new Intl.NumberFormat('fr-FR').format($store.cart.subtotal + deliveryFee) + ' FCFA')"
+                ></button>
             </div>
         </div>
 

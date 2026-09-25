@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Delivery;
 use App\Models\Setting;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -19,7 +20,10 @@ class SettingController extends Controller
     {
         $this->authorize('viewAny', Setting::class);
 
-        return view('admin.settings.edit', ['settings' => Setting::current()]);
+        return view('admin.settings.edit', [
+            'settings' => Setting::current(),
+            'deliveriesCount' => Delivery::count(),
+        ]);
     }
 
     public function update(Request $request): RedirectResponse
@@ -31,6 +35,8 @@ class SettingController extends Controller
             'shop_address' => ['nullable', 'string', 'max:255'],
             'shop_phone' => ['nullable', 'string', 'max:30'],
             'shop_email' => ['nullable', 'email', 'max:255'],
+            'ninea' => ['nullable', 'string', 'max:50'],
+            'rccm' => ['nullable', 'string', 'max:50'],
             'invoice_logo' => ['nullable', 'image', 'max:2048'],
             'invoice_signature' => ['nullable', 'image', 'max:2048'],
         ]);

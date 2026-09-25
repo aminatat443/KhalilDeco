@@ -21,14 +21,15 @@
             @endif
         </a>
 
-        {{-- Réduction + favori, groupés en haut à droite --}}
-        <div class="absolute right-3 top-3 z-10 flex items-center gap-2">
-            @if($discount)
-                <span class="pointer-events-none bg-white px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.08em] text-primary">
-                    -{{ $discount }}%
-                </span>
-            @endif
+        {{-- Réduction en haut à gauche --}}
+        @if($discount)
+            <span class="pointer-events-none absolute left-3 top-3 z-10 bg-white px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.08em] text-primary">
+                -{{ $discount }}%
+            </span>
+        @endif
 
+        {{-- Favori en haut à droite --}}
+        <div class="absolute right-3 top-3 z-10 flex items-center gap-2">
             <button
                 type="button"
                 @click="$store.favorites.toggle({ id: {{ $product->id }}, name: @js($product->name), price: {{ $product->price }}, image: @js($image), url: @js(route('products.show', $product)) })"
@@ -40,20 +41,24 @@
         </div>
 
         {{-- Ajout direct au panier au survol, sans variante — le client choisit la taille/couleur
-             au moment de la commande plutôt qu'ici (dans le panier, avant validation). --}}
+             au moment de la commande plutôt qu'ici (dans le panier, avant validation). L'équipe
+             n'a pas de panier côté boutique (voir header.blade.php, icône panier remplacée par
+             le raccourci back-office) — le bouton reste visible pour elle (cohérence visuelle),
+             mais le clic ne déclenche rien. --}}
         <form
             action="{{ route('cart.add') }}"
             method="POST"
-            @submit.prevent="$store.cart.add($el)"
+            @submit.prevent="{{ auth()->check() && auth()->user()->isStaffMember() ? '' : '$store.cart.add($el)' }}"
             class="absolute inset-x-0 bottom-0 z-10 translate-y-0 opacity-100 transition duration-300 ease-out lg:translate-y-full lg:opacity-0 lg:group-hover:translate-y-0 lg:group-hover:opacity-100"
         >
             @csrf
             <input type="hidden" name="product_id" value="{{ $product->id }}">
             <button
                 type="submit"
-                class="flex w-full items-center justify-center gap-2 bg-secondary-shade px-1 py-2.5 text-[10px] font-semibold uppercase leading-tight tracking-[0.02em] text-white transition hover:bg-primary sm:py-3 sm:text-xs sm:tracking-[0.08em]"
+                class="flex w-full items-center justify-center gap-1.5 bg-primary px-1 py-2.5 text-[10px] font-semibold uppercase leading-tight tracking-[0.02em] text-white transition hover:bg-primary-shade sm:py-3 sm:text-xs sm:tracking-[0.08em]"
             >
-                Ajouter au panier
+                <i class="fa-solid fa-bag-shopping text-[10px]"></i>
+                Ajouter
             </button>
         </form>
 

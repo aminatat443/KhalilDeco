@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Models\Category;
+use App\Models\Favorite;
 use App\Services\CartService;
 use Illuminate\Auth\Events\Login;
 use Illuminate\Support\Facades\Event;
@@ -48,6 +49,13 @@ class AppServiceProvider extends ServiceProvider
         // puis mis à jour par fetch à chaque ajout — pas de rechargement de page (docs/SPEC.md).
         View::composer('components.header', function ($view) {
             $view->with('cartSummary', app(CartService::class)->summary());
+        });
+
+        // Favoris connus du serveur pour le client connecté — fusionnés avec un éventuel
+        // localStorage pré-connexion par $store.favorites.hydrate() ; un invité reçoit `null` et
+        // reste sur son localStorage seul (pas de compte à qui rattacher un favori serveur).
+        View::composer('components.header', function ($view) {
+            $view->with('favoritesSummary', auth()->check() ? Favorite::summaryFor(auth()->id()) : null);
         });
     }
 }

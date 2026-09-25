@@ -2,9 +2,18 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="x-apple-disable-message-reformatting">
     <title>Commande {{ $order->order_number }}</title>
+    <style>
+        @media only screen and (max-width: 480px) {
+            .mobile-px { padding-left: 16px !important; padding-right: 16px !important; }
+            .mobile-stack { display: block !important; width: 100% !important; box-sizing: border-box !important; text-align: left !important; }
+            .mobile-stack-right { text-align: left !important; padding-top: 6px !important; }
+        }
+    </style>
 </head>
-<body style="margin:0; padding:0; background-color:#f2f2f2; font-family: Helvetica, Arial, sans-serif; color:#213737;">
+<body style="margin:0; padding:0; background-color:#f2f2f2; font-family: Helvetica, Arial, sans-serif; color:#1D302C;">
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f2f2f2; padding:24px 0;">
         <tr>
             <td align="center">
@@ -12,15 +21,18 @@
 
                     {{-- Bandeau logo --}}
                     <tr>
-                        <td style="background-color:#2F4F4F; padding:22px 32px;">
-                            <span style="font-size:20px; font-weight:bold; color:#ffffff;">KhalilShop</span>
+                        <td class="mobile-px" style="background-color:#263F3A; padding-top:22px; padding-right:32px; padding-bottom:22px; padding-left:32px;">
+                            <table role="presentation" cellpadding="0" cellspacing="0"><tr>
+                                <td style="padding-right:12px;"><img src="{{ asset('images/email-logo-badge.png') }}" alt="Khalil Déco" width="36" height="36" style="display:block; border-radius:10px;"></td>
+                                <td style="vertical-align:middle;"><span style="font-size:20px; font-weight:bold; color:#ffffff;">Khalil Déco</span></td>
+                            </tr></table>
                         </td>
                     </tr>
 
                     {{-- Suivi de commande — même timeline que sur le site (compte client) --}}
                     @if($order->status === 'annulee')
                         <tr>
-                            <td style="background-color:#fef2f2; padding:22px 32px; text-align:center;">
+                            <td class="mobile-px" style="background-color:#fef2f2; padding-top:22px; padding-right:32px; padding-bottom:22px; padding-left:32px; text-align:center;">
                                 <span style="font-size:26px;">✕</span>
                                 <p style="margin:8px 0 0; font-size:16px; font-weight:bold; color:#b91c1c; text-transform:uppercase; letter-spacing:0.5px;">
                                     Commande annulée
@@ -36,20 +48,20 @@
                             $lastIndex = count($steps) - 1;
                         @endphp
                         <tr>
-                            <td style="padding:26px 24px 6px;">
-                                <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                            <td class="mobile-px" style="padding-top:26px; padding-right:24px; padding-bottom:6px; padding-left:24px;">
+                                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="table-layout:fixed;">
                                     <tr>
                                         @foreach($steps as $key => $label)
                                             @php
                                                 $i = $loop->index;
                                                 $reached = $i <= $currentIndex;
                                                 $passed = $i < $currentIndex;
-                                                $circleColor = $reached ? '#d77a61' : '#e0e0e0';
-                                                $textColor = $reached ? '#213737' : '#999999';
-                                                $leftLineColor = $i === 0 ? '#ffffff' : ($i <= $currentIndex ? '#d77a61' : '#e0e0e0');
-                                                $rightLineColor = $i === $lastIndex ? '#ffffff' : ($i < $currentIndex ? '#d77a61' : '#e0e0e0');
+                                                $circleColor = $reached ? '#263F3A' : '#e0e0e0';
+                                                $textColor = $reached ? '#1D302C' : '#999999';
+                                                $leftLineColor = $i === 0 ? '#ffffff' : ($i <= $currentIndex ? '#263F3A' : '#e0e0e0');
+                                                $rightLineColor = $i === $lastIndex ? '#ffffff' : ($i < $currentIndex ? '#263F3A' : '#e0e0e0');
                                             @endphp
-                                            <td style="width:{{ round(100 / count($steps)) }}%; text-align:center;">
+                                            <td style="width:{{ round(100 / count($steps)) }}%; text-align:center; overflow-wrap:break-word;">
                                                 <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
                                                     <td style="width:50%; height:2px; background-color:{{ $leftLineColor }}; font-size:0; line-height:0;">&nbsp;</td>
                                                     <td style="width:22px;">
@@ -61,7 +73,7 @@
                                                     </td>
                                                     <td style="width:50%; height:2px; background-color:{{ $rightLineColor }}; font-size:0; line-height:0;">&nbsp;</td>
                                                 </tr></table>
-                                                <p style="margin:6px 0 0; font-size:8px; text-transform:uppercase; letter-spacing:0.3px; color:{{ $textColor }};">{{ $label }}</p>
+                                                <p style="margin:6px 0 0; font-size:7px; text-transform:uppercase; letter-spacing:0.2px; color:{{ $textColor }}; word-break:break-word; overflow-wrap:break-word;">{{ $label }}</p>
                                             </td>
                                         @endforeach
                                     </tr>
@@ -71,7 +83,7 @@
                     @endif
 
                     <tr>
-                        <td style="padding:28px 32px 8px;">
+                        <td class="mobile-px" style="padding-top:28px; padding-right:32px; padding-bottom:8px; padding-left:32px;">
                             <p style="font-size:15px; margin:0 0 4px;">Bonjour {{ $order->customer_name }},</p>
                             <p style="font-size:13px; color:#555555; margin:0;">
                                 @if($order->status === 'confirmee')
@@ -93,12 +105,12 @@
 
                     {{-- Récapitulatif commande --}}
                     <tr>
-                        <td style="padding:16px 32px 0;">
+                        <td class="mobile-px" style="padding-top:16px; padding-right:32px; padding-bottom:0; padding-left:32px;">
                             <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f9f9f9; font-size:12px; color:#555555;">
                                 <tr>
-                                    <td style="padding:14px 16px;">N° de commande<br><strong style="color:#213737; font-size:13px;">{{ $order->order_number }}</strong></td>
-                                    <td style="padding:14px 16px;">Date<br><strong style="color:#213737; font-size:13px;">{{ $order->created_at->format('d/m/Y') }}</strong></td>
-                                    <td style="padding:14px 16px;">Paiement<br><strong style="color:#213737; font-size:13px;">{{ $order->paymentMethodLabel() }}</strong></td>
+                                    <td class="mobile-stack" style="padding:14px 16px;">N° de commande<br><strong style="color:#1D302C; font-size:13px;">{{ $order->order_number }}</strong></td>
+                                    <td class="mobile-stack" style="padding:14px 16px;">Date<br><strong style="color:#1D302C; font-size:13px;">{{ $order->created_at->format('d/m/Y') }}</strong></td>
+                                    <td class="mobile-stack" style="padding:14px 16px;">Paiement<br><strong style="color:#1D302C; font-size:13px;">{{ $order->paymentMethodLabel() }}</strong></td>
                                 </tr>
                             </table>
                         </td>
@@ -106,7 +118,7 @@
 
                     {{-- Articles --}}
                     <tr>
-                        <td style="padding:24px 32px 0;">
+                        <td class="mobile-px" style="padding-top:24px; padding-right:32px; padding-bottom:0; padding-left:32px;">
                             <p style="margin:0 0 12px; font-size:11px; font-weight:bold; text-transform:uppercase; letter-spacing:0.5px; color:#999999;">Votre commande</p>
 
                             @foreach($order->items as $item)
@@ -120,14 +132,14 @@
                                             @endif
                                         </td>
                                         <td style="padding:10px 14px; vertical-align:middle;">
-                                            <p style="margin:0 0 4px; font-size:13px; font-weight:bold; color:#213737;">{{ $item->product_name }}</p>
+                                            <p style="margin:0 0 4px; font-size:13px; font-weight:bold; color:#1D302C;">{{ $item->product_name }}</p>
                                             @if($item->variant_label)
                                                 <p style="margin:0 0 4px; font-size:11px; color:#999999;">{{ $item->variant_label }}</p>
                                             @endif
                                             <p style="margin:0; font-size:11px; color:#999999;">Qté : {{ $item->quantity }}</p>
                                         </td>
                                         <td style="padding:10px 14px; text-align:right; vertical-align:middle; white-space:nowrap;">
-                                            <span style="font-size:13px; font-weight:bold; color:#213737;">{{ number_format($item->subtotal, 0, ',', ' ') }} FCFA</span>
+                                            <span style="font-size:13px; font-weight:bold; color:#1D302C;">{{ number_format($item->subtotal, 0, ',', ' ') }} FCFA</span>
                                         </td>
                                     </tr>
                                 </table>
@@ -137,25 +149,25 @@
 
                     {{-- Totaux --}}
                     <tr>
-                        <td style="padding:8px 32px 0;">
+                        <td class="mobile-px" style="padding-top:8px; padding-right:32px; padding-bottom:0; padding-left:32px;">
                             <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-size:13px; color:#555555;">
                                 <tr>
                                     <td style="padding:2px 0;">Sous-total</td>
                                     <td style="padding:2px 0; text-align:right;">{{ number_format($order->subtotal, 0, ',', ' ') }} FCFA</td>
                                 </tr>
                                 <tr>
-                                    <td style="padding:2px 0;">Livraison</td>
+                                    <td style="padding:2px 0;">Livraison{{ $order->delivery_zone ? ' ('.$order->delivery_zone.')' : '' }}</td>
                                     <td style="padding:2px 0; text-align:right;">{{ $order->delivery_fee > 0 ? number_format($order->delivery_fee, 0, ',', ' ').' FCFA' : 'À confirmer sur WhatsApp' }}</td>
                                 </tr>
                                 @if($order->discount > 0)
                                     <tr>
-                                        <td style="padding:2px 0; color:#d77a61;">Réduction</td>
-                                        <td style="padding:2px 0; text-align:right; color:#d77a61;">-{{ number_format($order->discount, 0, ',', ' ') }} FCFA</td>
+                                        <td style="padding:2px 0; color:#C8A875;">Réduction</td>
+                                        <td style="padding:2px 0; text-align:right; color:#C8A875;">-{{ number_format($order->discount, 0, ',', ' ') }} FCFA</td>
                                     </tr>
                                 @endif
                                 <tr>
-                                    <td style="padding:10px 0 2px; border-top:1px solid #eeeeee; font-weight:bold; color:#213737;">Total</td>
-                                    <td style="padding:10px 0 2px; border-top:1px solid #eeeeee; text-align:right; font-weight:bold; color:#213737;">{{ number_format($order->total, 0, ',', ' ') }} FCFA</td>
+                                    <td style="padding:10px 0 2px; border-top:1px solid #eeeeee; font-weight:bold; color:#1D302C;">Total</td>
+                                    <td style="padding:10px 0 2px; border-top:1px solid #eeeeee; text-align:right; font-weight:bold; color:#1D302C;">{{ number_format($order->total, 0, ',', ' ') }} FCFA</td>
                                 </tr>
                             </table>
                         </td>
@@ -163,24 +175,24 @@
 
                     {{-- Livraison --}}
                     <tr>
-                        <td style="padding:24px 32px 0;">
+                        <td class="mobile-px" style="padding-top:24px; padding-right:32px; padding-bottom:0; padding-left:32px;">
                             <div style="padding:16px; background:#f9f9f9; font-size:12px; color:#555555;">
-                                <strong style="color:#213737;">Livraison à :</strong> {{ $order->delivery_address }}{{ $order->delivery_quartier ? ', '.$order->delivery_quartier : '' }}, {{ $order->delivery_city }}, {{ $order->delivery_region }}
+                                <strong style="color:#1D302C;">Livraison à :</strong> {{ $order->delivery_address }}{{ $order->delivery_quartier ? ', '.$order->delivery_quartier : '' }}, {{ $order->delivery_city }}, {{ $order->delivery_region }}
                             </div>
                         </td>
                     </tr>
 
                     {{-- CTA --}}
                     <tr>
-                        <td style="padding:28px 32px; text-align:center;">
-                            <a href="{{ route('account.orders.show', $order) }}" style="display:inline-block; padding:14px 32px; background:#2F4F4F; color:#ffffff; font-size:12px; font-weight:bold; text-transform:uppercase; letter-spacing:0.5px; text-decoration:none;">
+                        <td class="mobile-px" style="padding-top:28px; padding-right:32px; padding-bottom:28px; padding-left:32px; text-align:center;">
+                            <a href="{{ route('account.orders.show', $order) }}" style="display:inline-block; padding:14px 32px; background:#263F3A; color:#ffffff; font-size:12px; font-weight:bold; text-transform:uppercase; letter-spacing:0.5px; text-decoration:none;">
                                 Voir ma commande
                             </a>
                         </td>
                     </tr>
 
                     <tr>
-                        <td style="padding:0 32px 24px; text-align:center;">
+                        <td class="mobile-px" style="padding-top:0; padding-right:32px; padding-bottom:24px; padding-left:32px; text-align:center;">
                             <p style="font-size:11px; color:#999999; margin:0;">
                                 Une question ? Répondez simplement à cet email ou contactez-nous sur WhatsApp.
                             </p>
@@ -188,8 +200,8 @@
                     </tr>
 
                     <tr>
-                        <td style="padding:20px 32px; background-color:#f5f5f5; font-size:11px; color:#999999; text-align:center;">
-                            © {{ date('Y') }} KhalilShop — Mode & Lifestyle, Sénégal
+                        <td class="mobile-px" style="padding-top:20px; padding-right:32px; padding-bottom:20px; padding-left:32px; background-color:#f5f5f5; font-size:11px; color:#999999; text-align:center;">
+                            © {{ date('Y') }} Khalil Déco — Décoration & Quincaillerie, Sénégal
                         </td>
                     </tr>
 

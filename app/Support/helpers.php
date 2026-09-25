@@ -35,3 +35,33 @@ if (! function_exists('img_url')) {
         return str_replace('/image/upload/', "/image/upload/{$transform}/", $url);
     }
 }
+
+if (! function_exists('email_track_pixel')) {
+    /**
+     * URL du pixel de suivi d'ouverture à intégrer en fin de template email — `null` si l'email
+     * n'est pas rattaché à un CampaignSend (emails transactionnels, hors suivi).
+     */
+    function email_track_pixel(?int $campaignSendId): ?string
+    {
+        if (! $campaignSendId) {
+            return null;
+        }
+
+        return \Illuminate\Support\Facades\URL::signedRoute('email.track.open', ['send' => $campaignSendId]);
+    }
+}
+
+if (! function_exists('email_track_click')) {
+    /**
+     * Fait passer un lien d'email de campagne par le suivi de clic avant sa destination réelle —
+     * renvoie l'URL d'origine telle quelle si l'email n'est pas rattaché à un CampaignSend.
+     */
+    function email_track_click(?int $campaignSendId, string $url): string
+    {
+        if (! $campaignSendId) {
+            return $url;
+        }
+
+        return \Illuminate\Support\Facades\URL::signedRoute('email.track.click', ['send' => $campaignSendId, 'url' => $url]);
+    }
+}

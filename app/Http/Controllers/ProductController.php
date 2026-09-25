@@ -21,10 +21,35 @@ class ProductController extends Controller
      */
     public function show(Product $product): View
     {
-        $product->load(['images' => fn ($q) => $q->orderBy('sort_order'), 'variants.color', 'variants.size', 'category']);
+        $product->load([
+            'images' => fn ($q) => $q->orderBy('sort_order'),
+            'variants.attributeValues.attribute',
+            'category',
+        ]);
 
-        $colors = $product->variants->pluck('color')->filter()->unique('id')->values();
-        $sizes = $product->variants->pluck('size')->filter()->unique('id')->values();
+        // Attributs à proposer sur la fiche produit (Couleur, Puissance...) — dérivés des
+        // combinaisons réellement utilisées par les variantes de CE produit, pas de la liste
+        // complète des attributs de la catégorie (qui peut en avoir plus que ce qui est vendu).
+        $selectorAttributes = $product->variants
+            ->flatMap(fn ($variant) => $variant->attributeValues)
+            ->groupBy('attribute_id')
+            ->map(function ($values) {
+                $attribute = $values->first()->attribute;
+
+                return [
+                    'id' => $attribute->id,
+                    'name' => $attribute->name,
+                    'type' => $attribute->type,
+                    'sortOrder' => $attribute->sort_order,
+                    'values' => $values->unique('id')->sortBy('sort_order')->values()->map(fn ($v) => [
+                        'id' => $v->id,
+                        'value' => $v->value,
+                        'colorCode' => $v->color_code,
+                    ])->values(),
+                ];
+            })
+            ->sortBy('sortOrder')
+            ->values();
 
         $reviews = $product->reviews()->where('is_approved', true)->with('user')->latest()->get();
         $myReview = auth()->check() ? $product->reviews()->where('user_id', auth()->id())->first() : null;
@@ -34,8 +59,7 @@ class ProductController extends Controller
 
         return view('products.show', [
             'product' => $product,
-            'colors' => $colors,
-            'sizes' => $sizes,
+            'selectorAttributes' => $selectorAttributes,
             'effectivePrice' => $this->promotions->effectivePrice($product),
             'inStock' => $this->products->isInStock($product),
             'reviews' => $reviews,

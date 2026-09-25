@@ -1,32 +1,32 @@
 @extends('layouts.app')
 
-@section('title', 'KhalilShop — Mode & Maison')
+@section('title', 'Khalil Déco — Décoration & Quincaillerie')
 
 @section('content')
 
 {{-- Hero principal (section 12) --}}
-<section class="mx-auto grid max-w-[1600px] items-center gap-12 px-6 py-14 sm:px-10 md:h-[26rem] md:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] md:py-0">
+<section class="mx-auto grid max-w-[1600px] items-center gap-12 px-6 py-14 sm:px-10 md:h-[26rem] md:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] md:py-0">
 
     <div>
 
         <p class="starting:opacity-0 text-xs font-medium uppercase tracking-[0.35em] text-grey opacity-100 transition-all duration-500">
-            Nouvelle collection
+            Décoration & quincaillerie
         </p>
 
         <h1 class="starting:opacity-0 starting:translate-y-4 mt-6 translate-y-0 font-display text-5xl font-normal italic leading-[1.02] text-secondary-shade opacity-100 transition-all duration-700 delay-100 sm:text-6xl lg:text-[5.5rem]">
-            Votre style,
+            Votre projet,
             <br>
-            votre <span class="text-primary">univers.</span>
+            notre <span class="text-primary">savoir-faire.</span>
         </h1>
 
         <p class="starting:opacity-0 starting:translate-y-4 mt-5 max-w-sm translate-y-0 text-[15px] leading-7 text-grey opacity-100 transition-all duration-700 delay-200">
-            Vêtements, chaussures, accessoires et décoration maison — une expérience shopping pensée pour vous.
+            Faux plafonds, quincaillerie, éclairage et décoration — tout pour vos projets d'aménagement intérieur.
         </p>
 
         <div class="starting:opacity-0 mt-8 flex flex-col items-start gap-5 opacity-100 transition-all duration-700 delay-300 sm:flex-row sm:items-center sm:gap-8">
             <a
                 href="{{ $universes->first() ? route('catalog.show', $universes->first()) : '#' }}"
-                class="whitespace-nowrap bg-secondary-shade px-9 py-4 text-xs font-semibold uppercase tracking-[0.15em] text-white transition hover:bg-primary"
+                class="whitespace-nowrap bg-primary px-9 py-4 text-xs font-semibold uppercase tracking-[0.15em] text-white transition hover:bg-primary-shade"
             >
                 Découvrir la collection
             </a>
@@ -131,11 +131,11 @@
 
         @php
             $universeIcons = [
-                'femme' => 'fa-person-dress',
-                'homme' => 'fa-shirt',
-                'chaussures' => 'fa-shoe-prints',
-                'accessoires' => 'fa-gem',
-                'maison-decoration' => 'fa-house-chimney-window',
+                'faux-plafonds' => 'fa-house-chimney-window',
+                'quincaillerie' => 'fa-screwdriver-wrench',
+                'decoration' => 'fa-palette',
+                'eclairage' => 'fa-lightbulb',
+                'outils-accessoires' => 'fa-toolbox',
             ];
         @endphp
 
@@ -143,7 +143,7 @@
             @foreach($universes as $universe)
                 <a
                     href="{{ route('catalog.show', $universe) }}"
-                    class="group flex flex-col items-center justify-center gap-1.5 border border-secondary-shade/10 bg-white p-1.5 text-center transition-colors duration-300 hover:bg-primary-tint/40 sm:gap-2 sm:p-3 lg:aspect-[3/4] lg:gap-5 lg:border-0 lg:p-6"
+                    class="group flex flex-col items-center justify-center gap-1.5 border border-secondary-shade/10 bg-white p-1.5 text-center transition-colors duration-300 hover:bg-primary-tint/40 sm:gap-2 sm:p-3 lg:aspect-[16/9] lg:gap-4 lg:border-0 lg:p-6"
                 >
                     <i class="fa-solid {{ $universeIcons[$universe->slug] ?? 'fa-star' }} text-xs text-secondary-shade/30 transition group-hover:text-primary sm:text-base lg:text-2xl"></i>
                     <span class="font-display text-[10px] italic leading-tight text-secondary-shade sm:text-sm lg:text-lg">{{ $universe->name }}</span>

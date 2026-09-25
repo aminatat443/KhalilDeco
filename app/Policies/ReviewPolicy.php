@@ -26,4 +26,13 @@ class ReviewPolicy
     {
         return $user->isGestionnaire() || $user->id === $review->user_id;
     }
+
+    /**
+     * Réponse du vendeur à un avis — action strictement réservée au back-office, contrairement
+     * à update() qui autorise aussi le client à modifier son propre avis.
+     */
+    public function reply(User $user, Review $review): bool
+    {
+        return $user->isGestionnaire();
+    }
 }

@@ -1,4 +1,10 @@
 {{-- Aide flottante (WhatsApp + Assistant IA) — disponible sur tout le site --}}
+@php
+    $assistantWhatsappDigits = preg_replace('/\D/', '', \App\Models\Setting::current()->shop_phone ?? '');
+    if (strlen($assistantWhatsappDigits) === 9) {
+        $assistantWhatsappDigits = '221'.$assistantWhatsappDigits;
+    }
+@endphp
 <div
     x-data="{
         menuOpen: false,
@@ -6,7 +12,7 @@
         input: '',
         sending: false,
         messages: [
-            { role: 'assistant', content: 'Bonjour ! Je suis l\'assistant KhalilShop. Posez-moi une question sur la livraison, les retours, le paiement ou votre compte.' },
+            { role: 'assistant', content: 'Bonjour ! Je suis l\'assistant Khalil Déco. Posez-moi une question sur la livraison, les retours, le paiement ou votre compte.' },
         ],
         toggleMain() {
             if (this.chatOpen) { this.chatOpen = false; return; }
@@ -50,7 +56,7 @@
         },
     }"
     @click.outside="menuOpen = false"
-    class="fixed bottom-6 right-6 z-40"
+    class="fixed bottom-6 right-6 z-[80]"
 >
     {{-- Options (WhatsApp + Assistant) --}}
     <div
@@ -65,7 +71,7 @@
         class="absolute bottom-[4.5rem] right-0 flex flex-col items-end gap-3"
     >
         <a
-            href="https://wa.me/221770000000"
+            href="https://wa.me/{{ $assistantWhatsappDigits }}"
             target="_blank"
             rel="noopener"
             @click="menuOpen = false"
@@ -90,7 +96,7 @@
         type="button"
         @click="toggleMain()"
         aria-label="Aide"
-        class="flex h-14 w-14 items-center justify-center rounded-full bg-secondary-shade text-xl text-white shadow-lg transition hover:bg-primary"
+        class="flex h-14 w-14 items-center justify-center rounded-full bg-primary text-xl text-white shadow-lg transition hover:bg-primary-shade"
     >
         <i class="fa-solid" :class="(menuOpen || chatOpen) ? 'fa-xmark' : 'fa-circle-question'"></i>
     </button>
@@ -105,16 +111,16 @@
         x-transition:leave-start="opacity-100"
         x-transition:leave-end="opacity-0"
         x-cloak
-        class="fixed inset-x-4 bottom-24 top-36 z-50 flex flex-col border border-secondary-shade/10 bg-white shadow-2xl sm:absolute sm:inset-x-auto sm:inset-y-auto sm:bottom-[4.5rem] sm:right-0 sm:top-auto sm:z-auto sm:h-[28rem] sm:w-[22rem] sm:max-w-[calc(100vw-3rem)]"
+        class="fixed inset-x-4 bottom-24 top-36 z-[80] flex min-h-0 flex-col border border-secondary-shade/10 bg-white shadow-2xl sm:absolute sm:inset-x-auto sm:inset-y-auto sm:bottom-[4.5rem] sm:right-0 sm:top-auto sm:z-auto sm:h-[28rem] sm:w-[22rem] sm:max-w-[calc(100vw-3rem)]"
     >
-        <div class="flex items-center justify-between border-b border-secondary-shade/10 bg-secondary-shade px-5 py-4">
-            <p class="text-sm font-medium text-white">Assistant KhalilShop</p>
+        <div class="flex shrink-0 items-center justify-between border-b border-secondary-shade/10 bg-secondary-shade px-5 py-4">
+            <p class="text-sm font-medium text-white">Assistant Khalil Déco</p>
             <button type="button" @click="chatOpen = false" class="text-white/70 transition hover:text-white" aria-label="Fermer">
                 <i class="fa-solid fa-xmark"></i>
             </button>
         </div>
 
-        <div x-ref="scrollArea" class="flex-1 space-y-3 overflow-y-auto px-4 py-4">
+        <div x-ref="scrollArea" class="min-h-0 flex-1 space-y-3 overflow-y-auto px-4 py-4">
             <template x-for="(message, index) in messages" :key="index">
                 <div :class="message.role === 'user' ? 'flex justify-end' : 'flex justify-start'">
                     <p
@@ -134,7 +140,7 @@
             </template>
         </div>
 
-        <form @submit.prevent="send()" class="flex items-center gap-2 border-t border-secondary-shade/10 p-3">
+        <form @submit.prevent="send()" class="flex shrink-0 items-center gap-2 border-t border-secondary-shade/10 p-3">
             <input
                 type="text"
                 x-model="input"

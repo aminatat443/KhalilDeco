@@ -18,13 +18,13 @@ class OrderConfirmationMail extends Mailable
 
     public function __construct(public readonly Order $order)
     {
-        $this->order->loadMissing('items', 'coupon');
+        $this->order->loadMissing('items.product.images', 'coupon');
     }
 
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Votre commande '.$this->order->order_number.' — KhalilShop',
+            subject: 'Votre commande '.$this->order->order_number.' — Khalil Déco',
         );
     }
 

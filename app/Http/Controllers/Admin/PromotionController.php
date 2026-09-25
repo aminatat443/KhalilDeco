@@ -3,9 +3,15 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Jobs\SendCampaignEmailJob;
+use App\Models\Campaign;
+use App\Models\CampaignSend;
 use App\Models\Category;
+use App\Models\EmailTemplate;
+use App\Models\Favorite;
 use App\Models\Product;
 use App\Models\Promotion;
+use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -88,6 +94,60 @@ class PromotionController extends Controller
         $promotion->delete();
 
         return redirect()->route('admin.promotions.index')->with('status', 'Promotion supprimée.');
+    }
+
+    /**
+     * Notifie par email les clients ayant mis en favori un produit concerné par cette promotion
+     * — aucune sélection manuelle de produits ou de destinataires, tout est déduit de la
+     * promotion elle-même (produit précis ou toute la catégorie) et des favoris existants.
+     */
+    public function sendEmail(Promotion $promotion): RedirectResponse
+    {
+        $this->authorize('update', $promotion);
+
+        $productIds = $promotion->product_id
+            ? [$promotion->product_id]
+            : Product::where('category_id', $promotion->category_id)->pluck('id')->all();
+
+        if (empty($productIds)) {
+            return back()->with('status', 'Aucun produit concerné par cette promotion.');
+        }
+
+        $userIds = Favorite::whereIn('product_id', $productIds)->distinct()->pluck('user_id');
+
+        if ($userIds->isEmpty()) {
+            return back()->with('status', "Aucun client n'a mis en favori un produit concerné — aucun email envoyé.");
+        }
+
+        $subjectTemplate = EmailTemplate::findByKey(EmailTemplate::PROMOTION)->subject;
+
+        $campaign = Campaign::create([
+            'type' => 'promotion',
+            'campaign_type' => Campaign::TYPE_PROMOTION,
+            'status' => Campaign::STATUS_PENDING,
+            'subject' => Campaign::uniqueSubject($subjectTemplate, Campaign::TYPE_PROMOTION),
+            'subject_template' => $subjectTemplate,
+            'product_ids' => $productIds,
+            'recipients_count' => $userIds->count(),
+            'is_automatic' => false,
+            'sent_by' => auth()->id(),
+        ]);
+
+        $campaign->update(['subject' => Campaign::uniqueSubject($subjectTemplate, Campaign::TYPE_PROMOTION, $campaign->id)]);
+
+        foreach (User::whereIn('id', $userIds)->get(['id', 'email']) as $user) {
+            $send = CampaignSend::create([
+                'campaign_id' => $campaign->id,
+                'user_id' => $user->id,
+                'email' => $user->email,
+                'status' => CampaignSend::PENDING,
+            ]);
+
+            SendCampaignEmailJob::dispatch($send->id);
+        }
+
+        return redirect()->route('admin.campaigns.show', $campaign)
+            ->with('status', 'Email de promotion mis en file pour '.$userIds->count().' client(s).');
     }
 
     private function validated(Request $request): array

@@ -8,15 +8,50 @@
                 Recevez nos nouveautés, promotions et inspirations déco directement dans votre boîte mail.
             </p>
 
-            <form class="mx-auto mt-8 flex max-w-sm items-end gap-4">
-                <input
-                    type="email"
-                    placeholder="Votre email"
-                    class="w-full border-b border-secondary-shade/25 bg-transparent py-2 text-sm text-secondary-shade outline-none placeholder:text-grey/50 focus:border-primary"
-                >
-                <button type="submit" class="shrink-0 text-xs font-semibold uppercase tracking-[0.15em] text-secondary-shade transition hover:text-primary">
-                    S'inscrire
-                </button>
+            <form
+                x-data="{
+                    email: '{{ auth()->user()->email ?? '' }}',
+                    loading: false,
+                    message: null,
+                    error: false,
+                    async submit() {
+                        this.loading = true;
+                        this.message = null;
+                        try {
+                            const response = await fetch('{{ route('newsletter.subscribe') }}', {
+                                method: 'POST',
+                                headers: { Accept: 'application/json', 'Content-Type': 'application/json', 'X-XSRF-TOKEN': window.csrfToken() },
+                                body: JSON.stringify({ email: this.email }),
+                            });
+                            const data = await response.json();
+                            this.error = ! response.ok;
+                            this.message = data.message || (this.error ? 'Une erreur est survenue.' : null);
+                            if (! this.error) this.email = '';
+                        } catch (e) {
+                            this.error = true;
+                            this.message = 'Une erreur est survenue.';
+                        } finally {
+                            this.loading = false;
+                        }
+                    },
+                }"
+                @submit.prevent="submit()"
+                class="mx-auto mt-8 max-w-sm"
+            >
+                <div class="flex items-end gap-4">
+                    <input
+                        type="email"
+                        x-model="email"
+                        required
+                        placeholder="Votre email"
+                        class="w-full border-b border-secondary-shade/25 bg-transparent py-2 text-sm text-secondary-shade outline-none placeholder:text-grey/50 focus:border-primary"
+                    >
+                    <button type="submit" :disabled="loading" class="shrink-0 text-xs font-semibold uppercase tracking-[0.15em] text-secondary-shade transition hover:text-primary disabled:opacity-50">
+                        <span x-show="! loading">S'inscrire</span>
+                        <span x-show="loading" x-cloak><i class="fa-solid fa-circle-notch fa-spin"></i></span>
+                    </button>
+                </div>
+                <p x-show="message" x-cloak :class="error ? 'text-red-600' : 'text-primary'" class="mt-3 text-xs" x-text="message"></p>
             </form>
         </div>
     </div>
@@ -25,11 +60,11 @@
     <div class="mx-auto grid max-w-[1600px] gap-10 px-6 py-16 sm:px-10 md:grid-cols-5">
 
         <div>
-            <img src="{{ asset('images/Khalil_shop-cropped.svg') }}" alt="KhalilShop" class="h-9 w-auto">
+            <img src="{{ asset('images/logo_khalil_deco_full.png') }}" alt="Khalil Déco" class="h-16 w-auto">
 
             <p class="mt-4 text-sm leading-6 text-grey">
-                Mode, accessoires et décoration pour créer
-                un style qui vous ressemble.
+                Décoration, faux plafonds et quincaillerie
+                pour tous vos projets d'aménagement.
             </p>
 
             <div class="mt-6 flex gap-5 text-secondary-shade/60">
@@ -86,7 +121,7 @@
 
     <div class="border-t border-secondary-shade/10">
         <div class="mx-auto max-w-[1600px] px-6 py-6 text-center text-xs text-grey sm:px-10">
-            © {{ date('Y') }} KhalilShop. Tous droits réservés.
+            © {{ date('Y') }} Khalil Déco. Tous droits réservés.
         </div>
     </div>
 

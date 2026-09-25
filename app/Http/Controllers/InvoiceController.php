@@ -18,7 +18,8 @@ class InvoiceController extends Controller
     public function show(Request $request, Order $order): Response
     {
         abort_unless(
-            (auth()->check() && (auth()->user()->isGestionnaire() || $order->user_id === auth()->id()))
+            $request->hasValidSignature()
+                || (auth()->check() && (auth()->user()->isStaffMember() || $order->user_id === auth()->id()))
                 || (! $order->user_id && $request->session()->get('last_order_id') === $order->id),
             403
         );

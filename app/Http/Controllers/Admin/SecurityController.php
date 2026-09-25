@@ -45,7 +45,7 @@ class SecurityController extends Controller
             'suspiciousToday' => (clone $today)->whereIn('type', ['brute_force', 'unauthorized_access'])->count(),
             'blockedCount' => BlockedIp::active()->count(),
             'events' => $events,
-            'blockedIps' => BlockedIp::active()->with('blockedBy')->latest()->get(),
+            'blockedIps' => BlockedIp::active()->with('blockedBy')->latest()->paginate(15, ['*'], 'blocked_page')->withQueryString(),
         ]);
     }
 

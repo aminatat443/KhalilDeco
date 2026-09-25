@@ -63,18 +63,46 @@ class AuthController extends Controller
             return back()->withErrors(['email' => $message])->onlyInput('email');
         }
 
+        // Compte désactivé par un administrateur (section 16 du cahier des charges RBAC).
+        if (! Auth::user()->is_active) {
+            Auth::logout();
+
+            $message = 'Ce compte a été désactivé. Contactez un administrateur.';
+
+            if ($request->wantsJson()) {
+                throw ValidationException::withMessages(['email' => $message]);
+            }
+
+            return back()->withErrors(['email' => $message])->onlyInput('email');
+        }
+
         $request->session()->regenerate();
 
         $this->orders->syncGuestOrders(Auth::user());
 
+        // La page réellement visée avant l'invite de connexion : celle qu'un accès direct à
+        // une route protégée a mémorisée (session('url.intended'), posée par redirect()->guest()
+        // lors du renvoi vers l'accueil — voir redirectGuestsTo dans bootstrap/app.php), sinon la
+        // page précédente (cas courant : fenêtre de connexion ouverte depuis le header sur une
+        // page déjà filtrée/recherchée). Sans ça, la fenêtre AJAX rechargeait bêtement l'URL
+        // courante ('/', une fois "login" retiré) et perdait les filtres actifs.
+        $redirectTo = $request->session()->pull('url.intended', url()->previous());
+
+        // Un membre de l'équipe atterrit directement dans l'espace admin — sauf s'il visait déjà
+        // une page précise de cet espace (lien admin partagé, accès direct à une commande…), pour
+        // ne pas lui faire perdre cette destination précise.
+        if (Auth::user()->isStaffMember() && ! str_starts_with($redirectTo, url('/admin'))) {
+            $redirectTo = route('admin.dashboard');
+        }
+
         if ($request->wantsJson()) {
             return response()->json([
                 'name' => Auth::user()->name,
-                'redirect' => url()->previous(),
+                'redirect' => $redirectTo,
             ]);
         }
 
-        return redirect()->intended(route('home'));
+        return redirect()->to($redirectTo);
     }
 
     /**
@@ -124,18 +152,29 @@ class AuthController extends Controller
         return Socialite::driver('google')->redirect();
     }
 
-    public function handleGoogleCallback(): RedirectResponse
+    /**
+     * Le bouton "Continuer avec Google" ouvre ce flux dans une fenêtre popup plutôt qu'en
+     * pleine page (demande client) — Google refuse d'être affiché en iframe, la popup est
+     * l'équivalent le plus proche d'une "modale". Cette vue relaie le résultat à la fenêtre
+     * d'origine via postMessage puis se referme ; si elle a été ouverte sans opener (lien
+     * suivi directement), elle se contente d'une redirection normale.
+     */
+    public function handleGoogleCallback(Request $request): \Illuminate\Contracts\View\View
     {
         try {
             $googleUser = Socialite::driver('google')->user();
         } catch (InvalidStateException|\Throwable $e) {
-            return redirect()->route('home')->withErrors(['email' => 'La connexion avec Google a échoué. Réessayez.']);
+            return view('auth.google-bridge', [
+                'success' => false,
+                'message' => 'La connexion avec Google a échoué. Réessayez.',
+                'redirect' => route('home'),
+            ]);
         }
 
         $user = User::firstOrNew(['email' => $googleUser->getEmail()]);
 
         if (! $user->exists) {
-            $user->name = $googleUser->getName() ?: $googleUser->getNickname() ?: 'Client KhalilShop';
+            $user->name = $googleUser->getName() ?: $googleUser->getNickname() ?: 'Client Khalil Déco';
             $user->password = Hash::make(Str::random(40));
             $user->role = Role::Client;
             $user->email_verified_at = now();
@@ -146,7 +185,17 @@ class AuthController extends Controller
 
         $this->orders->syncGuestOrders($user);
 
-        return redirect()->route('home');
+        $redirectTo = $request->session()->pull('url.intended', route('home'));
+
+        if ($user->isStaffMember() && ! str_starts_with($redirectTo, url('/admin'))) {
+            $redirectTo = route('admin.dashboard');
+        }
+
+        return view('auth.google-bridge', [
+            'success' => true,
+            'message' => null,
+            'redirect' => $redirectTo,
+        ]);
     }
 
     public function logout(Request $request): RedirectResponse

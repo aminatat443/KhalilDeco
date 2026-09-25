@@ -18,6 +18,7 @@ class Product extends Model
         'model',
         'price',
         'old_price',
+        'cost_price',
         'material',
         'stock',
         'is_new',

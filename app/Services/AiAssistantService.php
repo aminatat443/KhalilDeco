@@ -10,7 +10,7 @@ class AiAssistantService
 {
     /**
      * Assistant FAQ boutique (livraison, retours, paiement, tailles...) — pas de recherche
-     * produit en temps réel, réponses cadrées au contenu de KhalilShop uniquement.
+     * produit en temps réel, réponses cadrées au contenu de Khalil Déco uniquement.
      *
      * Utilise l'API Google Gemini (gratuite via aistudio.google.com, sans carte bancaire).
      *
@@ -60,7 +60,7 @@ class AiAssistantService
             ->implode("\n");
 
         return <<<PROMPT
-            Tu es l'assistant virtuel de KhalilShop, une boutique en ligne sénégalaise de mode et lifestyle
+            Tu es l'assistant virtuel de Khalil Déco, une boutique en ligne sénégalaise de mode et lifestyle
             (vêtements, chaussures, accessoires, décoration maison). Tu réponds en français, de façon
             courte, chaleureuse et professionnelle.
 
@@ -74,7 +74,7 @@ class AiAssistantService
             - La boutique ne vend qu'en FCFA, en français uniquement.
 
             Règles :
-            - Réponds uniquement aux questions liées à KhalilShop (livraison, retours, paiement, compte, tailles, utilisation du site).
+            - Réponds uniquement aux questions liées à Khalil Déco (livraison, retours, paiement, compte, tailles, utilisation du site).
             - Si tu ne connais pas une information précise (stock d'un produit précis, délai exact d'une commande en cours), invite poliment le client à consulter la page du produit ou "Mes commandes", ou à contacter le service client.
             - Ne réponds pas aux questions sans rapport avec la boutique ; redirige poliment vers le sujet.
             - Reste bref : 2 à 4 phrases maximum, sans listes à puces sauf si vraiment utile.

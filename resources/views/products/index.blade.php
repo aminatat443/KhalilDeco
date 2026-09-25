@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', $category->name.' — KhalilShop')
+@section('title', $category->name.' — Khalil Déco')
 
 @section('content')
 

@@ -15,7 +15,7 @@ class OrderPolicy
 
     public function view(User $user, Order $order): bool
     {
-        return $user->isGestionnaire() || $user->id === $order->user_id;
+        return $user->isGestionnaire() || $user->hasPermission('orders.view_details') || $user->id === $order->user_id;
     }
 
     public function create(User $user): bool
@@ -27,13 +27,13 @@ class OrderPolicy
     public function update(User $user, Order $order): bool
     {
         // Changer le statut, confirmer (docs/SPEC.md §2.4)
-        return $user->isGestionnaire();
+        return $user->isGestionnaire() || $user->hasPermission('orders.update') || $user->hasPermission('orders.update_status');
     }
 
     public function cancel(User $user, Order $order): bool
     {
         // Le client peut annuler tant que la commande n'a pas été confirmée (docs/SPEC.md §2.3)
-        if ($user->isGestionnaire()) {
+        if ($user->isGestionnaire() || $user->hasPermission('orders.cancel')) {
             return true;
         }
 

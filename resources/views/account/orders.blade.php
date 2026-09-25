@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Mes commandes — KhalilShop')
+@section('title', 'Mes commandes — Khalil Déco')
 
 @section('content')
 <div x-data="{ returnModal: null }" class="mx-auto max-w-4xl px-6 py-16 sm:px-10">
@@ -40,6 +40,12 @@
                         >
                             <i class="fa-solid fa-rotate-left mr-1"></i>Demander un retour
                         </button>
+                    </div>
+                @elseif($order->status === 'en_attente_paiement')
+                    <div class="mt-3 border-t border-secondary-shade/10 pt-3">
+                        <a href="{{ route('payment.retry', $order) }}" onclick="event.stopPropagation()" class="text-xs font-semibold text-primary hover:underline">
+                            <i class="fa-solid fa-credit-card mr-1"></i>Payer maintenant
+                        </a>
                     </div>
                 @endif
             </div>
@@ -87,7 +93,7 @@
                     <label class="mb-1.5 block text-xs font-semibold uppercase tracking-[0.15em] text-secondary-shade">Motif du retour</label>
                     <select name="reason" required class="w-full border-b border-secondary-shade/20 bg-transparent py-2 text-sm outline-none focus:border-primary">
                         <option value="">Choisir…</option>
-                        <option value="taille">Taille inadaptée</option>
+                        <option value="taille">Dimensions incorrectes</option>
                         <option value="defaut">Article défectueux</option>
                         <option value="description">Ne correspond pas à la description</option>
                         <option value="autre">Autre</option>

@@ -6,7 +6,7 @@
 
 @section('modal')
 
-<h1 class="font-display text-3xl font-normal italic text-secondary-shade dark:text-white">
+<h1 class="pr-10 text-2xl font-semibold text-secondary-shade dark:text-white">
     {{ $coupon->exists ? 'Modifier « '.$coupon->code.' »' : 'Nouveau code promo' }}
 </h1>
 
@@ -23,7 +23,7 @@
         <input type="text" name="code" value="{{ old('code', $coupon->code) }}" required placeholder="KHALIL20" class="w-full border border-secondary-shade/15 bg-white px-3.5 py-2 text-sm uppercase outline-none focus:border-primary focus:ring-2 focus:ring-primary/15 dark:border-white/10 dark:bg-white/5 dark:text-white">
     </div>
 
-    <div class="grid grid-cols-2 gap-6">
+    <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
         <div>
             <label class="mb-1.5 block text-xs font-semibold uppercase tracking-[0.15em] text-secondary-shade dark:text-white/70">Type</label>
             <select name="type" class="w-full border border-secondary-shade/15 bg-white px-3.5 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/15 dark:border-white/10 dark:bg-white/5 dark:text-white">
@@ -37,7 +37,7 @@
         </div>
     </div>
 
-    <div class="grid grid-cols-2 gap-6">
+    <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
         <div>
             <label class="mb-1.5 block text-xs font-semibold uppercase tracking-[0.15em] text-secondary-shade dark:text-white/70">Montant minimum (optionnel)</label>
             <input type="number" name="min_amount" value="{{ old('min_amount', $coupon->min_amount) }}" min="0" class="w-full border border-secondary-shade/15 bg-white px-3.5 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/15 dark:border-white/10 dark:bg-white/5 dark:text-white">
@@ -48,7 +48,7 @@
         </div>
     </div>
 
-    <div class="grid grid-cols-2 gap-6">
+    <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
         <div>
             <label class="mb-1.5 block text-xs font-semibold uppercase tracking-[0.15em] text-secondary-shade dark:text-white/70">Début (optionnel)</label>
             <input type="date" name="starts_at" value="{{ old('starts_at', $coupon->starts_at?->format('Y-m-d')) }}" class="w-full border border-secondary-shade/15 bg-white px-3.5 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/15 dark:border-white/10 dark:bg-white/5 dark:text-white">
@@ -66,7 +66,7 @@
 
     <div class="flex gap-4 pt-2">
         <a href="{{ route('admin.coupons.index') }}" class="px-8 py-4 text-xs font-semibold uppercase tracking-[0.15em] text-secondary-shade transition hover:text-primary dark:text-white/70">Annuler</a>
-        <button type="submit" class="bg-secondary-shade px-8 py-4 text-xs font-semibold uppercase tracking-[0.15em] text-white shadow-sm transition hover:bg-primary hover:shadow-md">
+        <button type="submit" class="bg-primary px-8 py-4 text-xs font-semibold uppercase tracking-[0.15em] text-white shadow-sm transition hover:bg-primary-shade hover:shadow-md">
             {{ $coupon->exists ? 'Enregistrer' : 'Créer le code' }}
         </button>
     </div>
@@ -76,7 +76,7 @@
     <form action="{{ route('admin.coupons.destroy', $coupon) }}" method="POST" class="mt-6" onsubmit="return confirm('Supprimer ce code promo ?');">
         @csrf
         @method('DELETE')
-        <button type="submit" class="text-xs font-semibold uppercase tracking-[0.15em] text-primary hover:underline">Supprimer ce code</button>
+        <button type="submit" class="text-xs font-semibold uppercase tracking-[0.15em] text-red-600 hover:underline dark:text-red-400">Supprimer ce code</button>
     </form>
 @endif
 

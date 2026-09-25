@@ -5,7 +5,7 @@
 
 <div class="space-y-3 lg:hidden">
     @forelse($orders as $order)
-        <a href="{{ route('orders.invoice', $order) }}" target="_blank" class="block bg-white p-4 shadow-sm ring-1 ring-secondary-shade/5 dark:bg-[#16201f] dark:ring-white/5">
+        <div @click="window.dispatchEvent(new CustomEvent('open-invoice-preview', { detail: { url: '{{ $order->invoiceUrl() }}', label: '{{ $order->order_number }}', phone: '{{ $order->customer_phone }}' } }))" class="cursor-pointer bg-white p-4 border border-secondary-shade/10 dark:bg-[#16201f] dark:border-white/10">
             <div class="flex items-center justify-between gap-3">
                 <span class="font-medium text-secondary-shade dark:text-white">{{ $order->order_number }}</span>
                 <span class="shrink-0 text-xs font-semibold uppercase tracking-[0.1em] text-secondary-shade dark:text-white/70"><i class="fa-solid fa-file-invoice mr-1"></i>Voir</span>
@@ -28,13 +28,13 @@
                     <dd class="mt-0.5 text-secondary-shade dark:text-white">{{ number_format($order->total, 0, ',', ' ') }} FCFA</dd>
                 </div>
             </dl>
-        </a>
+        </div>
     @empty
-        <div class="bg-white px-6 py-10 text-center text-sm text-grey shadow-sm ring-1 ring-secondary-shade/5 dark:bg-[#16201f] dark:text-white/40 dark:ring-white/5">Aucune facture pour cette période.</div>
+        <div class="bg-white px-6 py-10 text-center text-sm text-grey border border-secondary-shade/10 dark:bg-[#16201f] dark:text-white/40 dark:border-white/10">Aucune facture pour cette période.</div>
     @endforelse
 </div>
 
-<div class="hidden overflow-x-auto bg-white shadow-sm ring-1 ring-secondary-shade/5 dark:bg-[#16201f] dark:ring-white/5 lg:block">
+<div class="hidden overflow-x-auto bg-white border border-secondary-shade/10 dark:bg-[#16201f] dark:border-white/10 lg:block">
     <table class="w-full text-sm">
         <thead>
             <tr class="border-b border-secondary-shade/10 text-left text-xs uppercase tracking-[0.1em] text-grey dark:border-white/10 dark:text-white/40">
@@ -53,11 +53,11 @@
                     <td class="px-6 py-4 text-grey dark:text-white/50">{{ $order->customer_name }}</td>
                     <td class="px-6 py-4 text-xs text-grey dark:text-white/40">{{ $order->created_at->format('d/m/Y') }}</td>
                     <td class="px-6 py-4 text-grey dark:text-white/50">{{ $order->paymentMethodLabel() }}</td>
-                    <td class="px-6 py-4 text-secondary-shade dark:text-white">{{ number_format($order->total, 0, ',', ' ') }} FCFA</td>
+                    <td class="whitespace-nowrap px-6 py-4 text-secondary-shade dark:text-white">{{ number_format($order->total, 0, ',', ' ') }} FCFA</td>
                     <td class="px-6 py-4 text-right">
-                        <a href="{{ route('orders.invoice', $order) }}" target="_blank" class="text-xs font-semibold uppercase tracking-[0.1em] text-secondary-shade hover:text-primary dark:text-white/70">
+                        <button type="button" @click="window.dispatchEvent(new CustomEvent('open-invoice-preview', { detail: { url: '{{ $order->invoiceUrl() }}', label: '{{ $order->order_number }}', phone: '{{ $order->customer_phone }}' } }))" class="text-xs font-semibold uppercase tracking-[0.1em] text-secondary-shade hover:text-primary dark:text-white/70">
                             <i class="fa-solid fa-file-invoice mr-1"></i>Voir
-                        </a>
+                        </button>
                     </td>
                 </tr>
             @empty

@@ -19,12 +19,12 @@ class CategoryPolicy
 
     public function create(User $user): bool
     {
-        return $user->isAdmin();
+        return $user->isAdmin() || $user->hasPermission('categories.create');
     }
 
     public function update(User $user, Category $category): bool
     {
-        return $user->isAdmin();
+        return $user->isAdmin() || $user->hasPermission('categories.update');
     }
 
     public function delete(User $user, Category $category): bool

@@ -24,11 +24,25 @@ class ProductController extends Controller
     {
         $this->authorize('viewAny', Product::class);
 
+        $threshold = Setting::current()->low_stock_threshold ?? 5;
+
+        // "Rupture"/"stock faible" sont comptés côté tableau de bord au niveau de la variante
+        // (un produit avec 2 variantes en rupture compte pour 2) alors que cette page liste des
+        // PRODUITS — un produit ayant au moins une variante concernée est donc inclus ici, même si
+        // le total affiché sur la carte (nombre de variantes) ne correspondra pas au nombre de
+        // lignes de cette liste (nombre de produits). Granularité différente, mais c'est la
+        // reproduction la plus fidèle possible sans changer la définition métier de la carte.
         $products = Product::query()
             ->with(['category', 'images' => fn ($q) => $q->orderBy('sort_order')])
             ->withCount('variants')
             ->when($request->filled('q'), fn ($q) => $q->where('name', 'ilike', '%'.$request->input('q').'%'))
             ->when($request->filled('category_id'), fn ($q) => $q->where('category_id', $request->input('category_id')))
+            ->when($request->input('stock') === 'out', fn ($q) => $q->where(fn ($q2) => $q2
+                ->where(fn ($q3) => $q3->whereDoesntHave('variants')->where('stock', 0))
+                ->orWhereHas('variants', fn ($v) => $v->where('stock', 0))))
+            ->when($request->input('stock') === 'low', fn ($q) => $q->where(fn ($q2) => $q2
+                ->where(fn ($q3) => $q3->whereDoesntHave('variants')->where('stock', '>', 0)->where('stock', '<=', $threshold))
+                ->orWhereHas('variants', fn ($v) => $v->where('stock', '>', 0)->where('stock', '<=', $threshold))))
             ->latest()
             ->paginate(20)
             ->withQueryString();
@@ -107,11 +121,18 @@ class ProductController extends Controller
     {
         $this->authorize('update', $product);
 
-        $product->load(['category.parent', 'images' => fn ($q) => $q->orderBy('sort_order'), 'variants.color', 'variants.size']);
+        $product->load([
+            'category.parent',
+            'category.attributes.values',
+            'images' => fn ($q) => $q->orderBy('sort_order'),
+            'variants.color',
+            'variants.size',
+            'variants.attributeValues.attribute',
+        ]);
 
         return view('admin.products.form', [
             'product' => $product,
-            'categories' => Category::whereNotNull('parent_id')->orderBy('name')->get(),
+            'categories' => Category::whereNotNull('parent_id')->with('parent')->orderBy('name')->get(),
             'colors' => Color::orderBy('name')->get(),
             'sizes' => $this->sizesForCategory($product->category),
         ]);
@@ -243,6 +264,7 @@ class ProductController extends Controller
             'material' => ['nullable', 'string', 'max:255'],
             'price' => ['required', 'integer', 'min:0'],
             'old_price' => ['nullable', 'integer', 'min:0'],
+            'cost_price' => ['nullable', 'integer', 'min:0'],
             'stock' => ['required', 'integer', 'min:0'],
             'is_new' => ['sometimes', 'boolean'],
             'is_promo' => ['sometimes', 'boolean'],

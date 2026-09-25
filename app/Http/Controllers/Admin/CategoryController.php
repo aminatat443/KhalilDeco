@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Attribute;
 use App\Models\Category;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -19,7 +20,8 @@ class CategoryController extends Controller
         $this->authorize('viewAny', Category::class);
 
         $categories = Category::whereNull('parent_id')
-            ->with(['children' => fn ($q) => $q->orderBy('sort_order')])
+            ->withCount('products')
+            ->with(['children' => fn ($q) => $q->orderBy('sort_order')->withCount('products')])
             ->orderBy('sort_order')
             ->get();
 
@@ -33,6 +35,7 @@ class CategoryController extends Controller
         return view('admin.categories.form', [
             'category' => new Category(),
             'universes' => Category::whereNull('parent_id')->orderBy('sort_order')->get(),
+            'attributes' => Attribute::orderBy('sort_order')->get(),
         ]);
     }
 
@@ -43,7 +46,8 @@ class CategoryController extends Controller
         $data = $this->validated($request);
         $data['slug'] = $this->uniqueSlug($data['name']);
 
-        Category::create($data);
+        $category = Category::create($data);
+        $category->attributes()->sync($request->input('attribute_ids', []));
 
         return redirect()->route('admin.categories.index')->with('status', 'Catégorie créée.');
     }
@@ -55,6 +59,8 @@ class CategoryController extends Controller
         return view('admin.categories.form', [
             'category' => $category,
             'universes' => Category::whereNull('parent_id')->where('id', '!=', $category->id)->orderBy('sort_order')->get(),
+            'attributes' => Attribute::orderBy('sort_order')->get(),
+            'selectedAttributeIds' => $category->attributes()->pluck('attributes.id')->all(),
         ]);
     }
 
@@ -69,6 +75,7 @@ class CategoryController extends Controller
         }
 
         $category->update($data);
+        $category->attributes()->sync($request->input('attribute_ids', []));
 
         return redirect()->route('admin.categories.index')->with('status', 'Catégorie mise à jour.');
     }

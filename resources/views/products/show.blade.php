@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', $product->name.' — KhalilShop')
+@section('title', $product->name.' — Khalil Déco')
 
 @section('content')
 
@@ -22,25 +22,45 @@
             'thumb' => img_url($img->url, 160, 160),
             'alt' => $img->alt ?? $product->name,
         ]);
+        $favoriteImage = img_url($product->images->first()?->url, 500, 625);
     @endphp
 
     <div
         x-data="{
-            colorId: null,
-            sizeId: null,
-            variants: {{ $product->variants->map(fn ($v) => ['id' => $v->id, 'color_id' => $v->color_id, 'size_id' => $v->size_id, 'stock' => $v->stock])->toJson() }},
+            attributes: {{ $selectorAttributes->toJson() }},
+            variants: {{ $product->variants->map(fn ($v) => ['id' => $v->id, 'stock' => $v->stock, 'values' => $v->attributeValues->pluck('id')->values()])->toJson() }},
+            productStock: {{ $product->stock }},
+            selected: {},
+            get hasStock() {
+                if (this.variants.length === 0) return this.productStock > 0;
+                if (this.selectedVariant) return this.selectedVariant.stock > 0;
+                return this.variants.some(v => v.stock > 0);
+            },
+            // Quantité précise seulement quand elle est sans ambiguïté (pas de variante, ou une
+            // variante précise choisie) — évite d'afficher un nombre qui ne correspondrait à
+            // aucune sélection concrète tant que le client n'a pas choisi sa variante.
+            get remainingStock() {
+                if (this.variants.length === 0) return this.productStock;
+                if (this.selectedVariant) return this.selectedVariant.stock;
+                return null;
+            },
+            toggleValue(attributeId, valueId) {
+                this.selected[attributeId] = this.selected[attributeId] === valueId ? null : valueId;
+            },
+            get selectedValueIds() {
+                return Object.values(this.selected).filter(v => v !== null && v !== undefined);
+            },
             get selectedVariant() {
-                return this.variants.find(v => v.color_id === this.colorId && v.size_id === this.sizeId) ?? null;
+                if (this.selectedValueIds.length !== this.attributes.length) return null;
+                return this.variants.find(v => v.values.length === this.selectedValueIds.length
+                    && this.selectedValueIds.every(id => v.values.includes(id))) ?? null;
             },
-            get availableSizeIds() {
-                if (! this.colorId) return null;
-                return this.variants.filter(v => v.color_id === this.colorId).map(v => v.size_id);
-            },
-            selectColor(id) {
-                this.colorId = id;
-                if (this.availableSizeIds && ! this.availableSizeIds.includes(this.sizeId)) {
-                    this.sizeId = null;
-                }
+            availableValueIds(attributeId) {
+                const others = Object.entries(this.selected).filter(([id]) => Number(id) !== attributeId && this.selected[id] !== null);
+                if (! others.length) return null;
+                return this.variants
+                    .filter(v => others.every(([id, valueId]) => v.values.includes(valueId)))
+                    .flatMap(v => v.values);
             },
             images: {{ $galleryImages->toJson() }},
             active: 0,
@@ -146,55 +166,48 @@
                 @endif
             </div>
 
+            <p class="mt-3 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.1em]" :class="hasStock ? 'text-green-600' : 'text-primary-shade'">
+                <i class="fa-solid" :class="hasStock ? 'fa-circle-check' : 'fa-circle-xmark'"></i>
+                <span x-text="hasStock ? 'En stock' : 'Rupture de stock'"></span>
+            </p>
+            <template x-if="hasStock && remainingStock !== null && remainingStock < 10">
+                <p class="mt-1 text-xs font-medium text-primary-shade" x-text="'Plus que ' + remainingStock + ' en stock'"></p>
+            </template>
+
             @if($product->description)
                 <p class="mt-6 max-w-md text-sm leading-6 text-grey">{{ $product->description }}</p>
             @endif
 
-            <form action="{{ route('cart.add') }}" method="POST" @submit.prevent="$store.cart.add($el)" class="mt-10 space-y-8">
+            {{-- L'équipe n'a pas de panier côté boutique (voir header.blade.php, icône panier
+                 remplacée par le raccourci back-office) — le bouton reste visible et cliquable
+                 pour elle (cohérence visuelle), mais l'ajout au panier ne se déclenche pas. --}}
+            @php($isStaffBrowsing = auth()->check() && auth()->user()->isStaffMember())
+            <form action="{{ route('cart.add') }}" method="POST" @submit.prevent="{{ $isStaffBrowsing ? '' : '$store.cart.add($el)' }}" class="mt-10 space-y-8">
                 @csrf
                 <input type="hidden" name="product_id" value="{{ $product->id }}">
 
-                {{-- Couleurs (section 27) --}}
-                @if($colors->isNotEmpty())
+                {{-- Attributs de variante (couleur, puissance, longueur...) — dynamiques selon la
+                     catégorie du produit (sections 27-28 du cahier des charges) --}}
+                <template x-for="attribute in attributes" :key="attribute.id">
                     <div>
-                        <p class="mb-3 text-xs font-semibold uppercase tracking-[0.2em] text-grey">Couleur</p>
-                        <div class="flex gap-3">
-                            @foreach($colors as $color)
+                        <p class="mb-3 text-xs font-semibold uppercase tracking-[0.2em] text-grey" x-text="attribute.name"></p>
+                        <div class="flex flex-wrap gap-3">
+                            <template x-for="value in attribute.values" :key="value.id">
                                 <button
                                     type="button"
-                                    @click="selectColor({{ $color->id }})"
-                                    :class="colorId === {{ $color->id }} ? 'ring-1 ring-offset-2 ring-secondary-shade' : 'ring-1 ring-secondary-shade/15'"
-                                    class="h-9 w-9 rounded-full transition"
-                                    style="background-color: {{ $color->hex_code ?? '#ccc' }}"
-                                    title="{{ $color->name }}"
+                                    x-show="! availableValueIds(attribute.id) || availableValueIds(attribute.id).includes(value.id)"
+                                    @click="toggleValue(attribute.id, value.id)"
+                                    :class="attribute.type === 'color'
+                                        ? ['h-9 w-9 rounded-full', selected[attribute.id] === value.id ? 'ring-1 ring-offset-2 ring-secondary-shade' : 'ring-1 ring-secondary-shade/15']
+                                        : ['border px-4 py-2 text-sm', selected[attribute.id] === value.id ? 'border-secondary-shade text-secondary-shade' : 'border-secondary-shade/15 text-secondary-shade hover:border-secondary-shade/40']"
+                                    :style="attribute.type === 'color' ? `background-color: ${value.colorCode}` : ''"
+                                    :title="value.value"
+                                    x-text="attribute.type === 'color' ? '' : value.value"
                                 ></button>
-                            @endforeach
+                            </template>
                         </div>
                     </div>
-                @endif
-
-                {{-- Tailles avec désactivation intelligente (section 28) — filtrées selon la couleur choisie --}}
-                @if($sizes->isNotEmpty())
-                    <div>
-                        <p class="mb-3 text-xs font-semibold uppercase tracking-[0.2em] text-grey">Taille</p>
-                        @if($colors->isNotEmpty())
-                            <p x-show="! colorId" class="mb-3 text-xs text-grey/70">Choisissez une couleur pour voir les tailles disponibles.</p>
-                        @endif
-                        <div class="flex flex-wrap gap-2">
-                            @foreach($sizes as $size)
-                                <button
-                                    type="button"
-                                    x-show="! availableSizeIds || availableSizeIds.includes({{ $size->id }})"
-                                    @click="sizeId = {{ $size->id }}"
-                                    :class="sizeId === {{ $size->id }} ? 'border-secondary-shade text-secondary-shade' : 'border-secondary-shade/15 text-secondary-shade hover:border-secondary-shade/40'"
-                                    class="border px-4 py-2 text-sm transition"
-                                >
-                                    {{ $size->name }}
-                                </button>
-                            @endforeach
-                        </div>
-                    </div>
-                @endif
+                </template>
 
                 <input type="hidden" name="variant_id" :value="selectedVariant ? selectedVariant.id : ''">
 
@@ -202,12 +215,24 @@
                     <p class="text-sm font-medium text-primary-shade">Rupture de stock pour cette variante.</p>
                 </template>
 
-                <button
-                    type="submit"
-                    class="w-full bg-secondary-shade py-4 text-xs font-semibold uppercase tracking-[0.15em] text-white transition hover:bg-primary"
-                >
-                    Ajouter au panier
-                </button>
+                <div class="flex gap-3">
+                    <button
+                        type="submit"
+                        :disabled="! hasStock"
+                        class="flex flex-1 items-center justify-center gap-2 bg-primary py-4 text-xs font-semibold uppercase tracking-[0.15em] text-white transition hover:bg-primary-shade disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-primary"
+                    >
+                        <i class="fa-solid fa-bag-shopping"></i>
+                        Ajouter au panier
+                    </button>
+                    <button
+                        type="button"
+                        @click="$store.favorites.toggle({ id: {{ $product->id }}, name: @js($product->name), price: {{ (int) $effectivePrice }}, image: @js($favoriteImage), url: @js(route('products.show', $product)) })"
+                        aria-label="Ajouter aux favoris"
+                        class="flex w-14 shrink-0 items-center justify-center border border-secondary-shade/20 text-secondary-shade transition hover:border-primary hover:text-primary"
+                    >
+                        <i :class="$store.favorites.isFavorite({{ $product->id }}) ? 'fa-solid text-primary' : 'fa-regular'" class="fa-heart text-lg"></i>
+                    </button>
+                </div>
             </form>
 
             <ul class="mt-12 grid grid-cols-2 gap-y-3 text-xs text-grey">
@@ -253,6 +278,23 @@
                 <span class="text-sm text-grey">({{ $displayReviewsCount }} avis)</span>
             </div>
         </div>
+
+        @if($reviews->isNotEmpty())
+            <div class="mt-6 max-w-md space-y-1.5">
+                @for($star = 5; $star >= 1; $star--)
+                    @php($starCount = $reviews->where('rating', $star)->count())
+                    <div class="flex items-center gap-3 text-xs">
+                        <span class="flex w-10 shrink-0 items-center gap-1 text-secondary-shade">
+                            {{ $star }} <i class="fa-solid fa-star text-[9px] text-primary"></i>
+                        </span>
+                        <div class="h-1.5 flex-1 overflow-hidden bg-secondary-shade/10">
+                            <div class="h-full bg-primary" style="width: {{ $starCount > 0 ? max(3, round(($starCount / $reviews->count()) * 100)) : 0 }}%"></div>
+                        </div>
+                        <span class="w-5 shrink-0 text-right text-grey">{{ $starCount }}</span>
+                    </div>
+                @endfor
+            </div>
+        @endif
 
         <div class="mt-10 grid gap-10 lg:grid-cols-[1fr_360px]">
 
@@ -382,6 +424,12 @@
                             </div>
                             @if($review->comment)
                                 <p class="mt-1.5 text-sm leading-relaxed text-grey">{{ $review->comment }}</p>
+                            @endif
+                            @if($review->admin_reply)
+                                <div class="mt-3 border-l-2 border-primary/30 bg-white py-2 pl-3">
+                                    <p class="text-[11px] font-semibold uppercase tracking-[0.08em] text-primary-shade">Réponse de Khalil Déco</p>
+                                    <p class="mt-1 text-sm leading-relaxed text-grey">{{ $review->admin_reply }}</p>
+                                </div>
                             @endif
                         </div>
                     </div>

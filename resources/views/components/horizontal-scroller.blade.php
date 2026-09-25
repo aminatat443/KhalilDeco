@@ -22,7 +22,7 @@
         x-show="canLeft"
         x-cloak
         @click="scroll(-1)"
-        class="absolute -left-4 top-1/2 z-50 flex h-10 w-10 -translate-y-1/2 items-center justify-center bg-white text-secondary-shade shadow-[0_8px_24px_-8px_rgba(33,55,55,0.3)] transition hover:text-primary sm:-left-5"
+        class="absolute -left-4 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center bg-white text-secondary-shade shadow-[0_8px_24px_-8px_rgba(33,55,55,0.3)] transition hover:text-primary sm:-left-5"
         aria-label="Voir précédent"
     >
         <i class="fa-solid fa-chevron-left text-xs"></i>
@@ -41,7 +41,7 @@
         x-show="canRight"
         x-cloak
         @click="scroll(1)"
-        class="absolute -right-4 top-1/2 z-50 flex h-10 w-10 -translate-y-1/2 items-center justify-center bg-white text-secondary-shade shadow-[0_8px_24px_-8px_rgba(33,55,55,0.3)] transition hover:text-primary sm:-right-5"
+        class="absolute -right-4 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center bg-white text-secondary-shade shadow-[0_8px_24px_-8px_rgba(33,55,55,0.3)] transition hover:text-primary sm:-right-5"
         aria-label="Voir suivant"
     >
         <i class="fa-solid fa-chevron-right text-xs"></i>

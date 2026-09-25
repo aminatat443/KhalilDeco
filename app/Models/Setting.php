@@ -11,9 +11,27 @@ class Setting extends Model
         'shop_address',
         'shop_phone',
         'shop_email',
+        'ninea',
+        'rccm',
         'invoice_logo',
         'invoice_signature',
+        'abandoned_cart_enabled',
+        'abandoned_cart_delay_days',
+        'low_stock_favorite_enabled',
+        'low_stock_threshold',
+        'promotion_favorite_enabled',
+        'newsletter_enabled',
     ];
+
+    protected function casts(): array
+    {
+        return [
+            'abandoned_cart_enabled' => 'boolean',
+            'low_stock_favorite_enabled' => 'boolean',
+            'promotion_favorite_enabled' => 'boolean',
+            'newsletter_enabled' => 'boolean',
+        ];
+    }
 
     /**
      * Configuration en ligne unique (logo/signature de facture, coordonnées de la boutique) —
@@ -22,7 +40,7 @@ class Setting extends Model
      */
     public static function current(): self
     {
-        return static::firstOrCreate(['id' => 1], ['shop_name' => 'KhalilShop']);
+        return static::firstOrCreate(['id' => 1], ['shop_name' => 'Khalil Déco']);
     }
 
     /**
@@ -75,5 +93,25 @@ class Setting extends Model
         } catch (\Throwable) {
             return null;
         }
+    }
+
+    /**
+     * Logo de facture affiché à défaut d'un logo personnalisé uploadé (ci-dessus) : le logo
+     * officiel Khalil Déco embarqué dans l'app, encodé en base64 pour DomPDF.
+     */
+    public function invoiceLogoDataUri(): ?string
+    {
+        return $this->mediaDataUri('invoice_logo') ?? self::defaultLogoDataUri();
+    }
+
+    public static function defaultLogoDataUri(): ?string
+    {
+        $path = public_path('images/logo_khalil_deco_full.png');
+
+        if (! is_file($path)) {
+            return null;
+        }
+
+        return 'data:image/png;base64,'.base64_encode(file_get_contents($path));
     }
 }

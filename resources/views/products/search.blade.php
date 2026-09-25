@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', ($query ? 'Résultats pour « '.$query.' »' : 'Rechercher').' — KhalilShop')
+@section('title', ($query ? 'Résultats pour « '.$query.' »' : 'Rechercher').' — Khalil Déco')
 
 @section('content')
 <div class="mx-auto max-w-[1600px] px-6 py-16 sm:px-10">

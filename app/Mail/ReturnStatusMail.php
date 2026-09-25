@@ -23,7 +23,7 @@ class ReturnStatusMail extends Mailable
         $label = ProductReturn::STATUS_LABELS[$this->return->status] ?? $this->return->status;
 
         return new Envelope(
-            subject: 'Retour — '.$this->return->orderItem->order->order_number.' — '.$label.' — KhalilShop',
+            subject: 'Retour — '.$this->return->orderItem->order->order_number.' — '.$label.' — Khalil Déco',
         );
     }
 

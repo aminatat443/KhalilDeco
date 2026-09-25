@@ -68,7 +68,12 @@ class AccountController extends Controller
     {
         abort_unless($order->user_id === auth()->id(), 403);
 
-        return view('account.order-show', ['order' => $order->load('items.returns')]);
+        $order->load('items.returns', 'payments');
+
+        return view('account.order-show', [
+            'order' => $order,
+            'latestPayment' => $order->payments->sortByDesc('created_at')->first(),
+        ]);
     }
 
     /**

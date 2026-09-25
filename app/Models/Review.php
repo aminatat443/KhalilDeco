@@ -13,12 +13,15 @@ class Review extends Model
         'rating',
         'comment',
         'is_approved',
+        'admin_reply',
+        'admin_replied_at',
     ];
 
     protected function casts(): array
     {
         return [
             'is_approved' => 'boolean',
+            'admin_replied_at' => 'datetime',
         ];
     }
 

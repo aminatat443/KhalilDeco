@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Panier — KhalilShop')
+@section('title', 'Panier — Khalil Déco')
 
 @section('content')
 <div x-data class="mx-auto max-w-3xl px-6 py-16 sm:px-10">
@@ -43,52 +43,53 @@
                             </div>
                         </div>
 
-                        {{-- Taille/couleur choisies ici, au moment de la commande, plutôt qu'à l'ajout au panier --}}
+                        {{-- Attributs (couleur, taille...) choisis ici, au moment de la commande, plutôt qu'à l'ajout au panier --}}
                         <template x-if="item.needs_variant">
-                            <div x-data="{ colorId: null, sizeId: null }" class="mt-4 bg-primary-tint/40 p-4">
+                            <div
+                                x-data="{
+                                    selected: {},
+                                    toggleValue(attributeId, valueId) {
+                                        this.selected[attributeId] = this.selected[attributeId] === valueId ? null : valueId;
+                                    },
+                                    get selectedValueIds() {
+                                        return Object.values(this.selected).filter(v => v !== null && v !== undefined);
+                                    },
+                                    get matchedVariant() {
+                                        if (this.selectedValueIds.length !== item.variant_options.attributes.length) return null;
+                                        return item.variant_options.variants.find(v => v.values.length === this.selectedValueIds.length
+                                            && this.selectedValueIds.every(id => v.values.includes(id))) ?? null;
+                                    },
+                                }"
+                                class="mt-4 bg-primary-tint/40 p-4"
+                            >
                                 <p class="mb-3 text-xs font-medium text-primary-shade">
-                                    <i class="fa-solid fa-circle-info mr-1.5"></i>Choisissez une taille et une couleur
+                                    <i class="fa-solid fa-circle-info mr-1.5"></i>Choisissez les options de cet article
                                 </p>
 
-                                <template x-if="item.variant_options.colors.length > 0">
-                                    <div class="mb-3 flex flex-wrap gap-2">
-                                        <template x-for="color in item.variant_options.colors" :key="color.id">
-                                            <button
-                                                type="button"
-                                                @click="colorId = color.id"
-                                                :class="colorId === color.id ? 'ring-2 ring-offset-1 ring-secondary-shade' : 'ring-1 ring-secondary-shade/20'"
-                                                class="h-7 w-7 rounded-full"
-                                                :style="'background-color: ' + (color.hex || '#ccc')"
-                                                :title="color.name"
-                                            ></button>
-                                        </template>
-                                    </div>
-                                </template>
-
-                                <template x-if="item.variant_options.sizes.length > 0">
-                                    <div class="mb-3 flex flex-wrap gap-2">
-                                        <template x-for="size in item.variant_options.sizes" :key="size.id">
-                                            <button
-                                                type="button"
-                                                @click="sizeId = size.id"
-                                                :class="sizeId === size.id ? 'border-secondary-shade text-secondary-shade' : 'border-secondary-shade/20 text-secondary-shade'"
-                                                class="border px-3 py-1.5 text-xs"
-                                                x-text="size.name"
-                                            ></button>
-                                        </template>
+                                <template x-for="attribute in item.variant_options.attributes" :key="attribute.id">
+                                    <div class="mb-3">
+                                        <p class="mb-1.5 text-[11px] font-medium uppercase tracking-[0.08em] text-secondary-shade/70" x-text="attribute.name"></p>
+                                        <div class="flex flex-wrap gap-2">
+                                            <template x-for="value in attribute.values" :key="value.id">
+                                                <button
+                                                    type="button"
+                                                    @click="toggleValue(attribute.id, value.id)"
+                                                    :class="attribute.type === 'color'
+                                                        ? ['h-7 w-7 rounded-full', selected[attribute.id] === value.id ? 'ring-2 ring-offset-1 ring-secondary-shade' : 'ring-1 ring-secondary-shade/20']
+                                                        : ['border px-3 py-1.5 text-xs', selected[attribute.id] === value.id ? 'border-secondary-shade text-secondary-shade' : 'border-secondary-shade/20 text-secondary-shade']"
+                                                    :style="attribute.type === 'color' ? ('background-color: ' + (value.colorCode || '#ccc')) : ''"
+                                                    :title="value.value"
+                                                    x-text="attribute.type === 'color' ? '' : value.value"
+                                                ></button>
+                                            </template>
+                                        </div>
                                     </div>
                                 </template>
 
                                 <button
                                     type="button"
-                                    x-show="(item.variant_options.colors.length === 0 || colorId) && (item.variant_options.sizes.length === 0 || sizeId)"
-                                    @click="
-                                        const match = item.variant_options.variants.find(v =>
-                                            (item.variant_options.colors.length === 0 || v.color_id === colorId) &&
-                                            (item.variant_options.sizes.length === 0 || v.size_id === sizeId)
-                                        );
-                                        if (match) $store.cart.chooseVariant(item.product_id, match.id);
-                                    "
+                                    x-show="matchedVariant"
+                                    @click="if (matchedVariant) $store.cart.chooseVariant(item.product_id, matchedVariant.id)"
                                     class="w-full bg-secondary-shade py-2.5 text-xs font-semibold uppercase tracking-[0.08em] text-white transition hover:bg-primary sm:w-auto sm:px-8"
                                 >
                                     Valider
@@ -106,7 +107,7 @@
 
             <a
                 href="{{ route('checkout.index') }}"
-                :class="$store.cart.items.some(i => i.needs_variant) ? 'pointer-events-none cursor-not-allowed bg-grey-tint text-grey/60' : 'bg-secondary-shade text-white hover:bg-primary'"
+                :class="$store.cart.items.some(i => i.needs_variant) ? 'pointer-events-none cursor-not-allowed bg-grey-tint text-grey/60' : 'bg-primary text-white hover:bg-primary-shade'"
                 class="mt-8 block px-6 py-4 text-center text-xs font-semibold uppercase tracking-[0.15em] transition"
             >
                 Passer la commande

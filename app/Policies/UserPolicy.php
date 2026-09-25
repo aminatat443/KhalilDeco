@@ -47,7 +47,7 @@ class UserPolicy
 
     public function delete(User $user, User $model): bool
     {
-        if ($model->role === Role::SuperAdmin) {
+        if ($model->isSuperAdmin()) {
             return false; // le Super Administrateur ne peut jamais être supprimé via l'application
         }
 

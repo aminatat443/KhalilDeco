@@ -31,6 +31,11 @@ class ReturnController extends Controller
                         ->orWhereHas('orderItem.order', fn ($q) => $q->where('order_number', 'ilike', $term));
                 });
             })
+            ->when($request->filled('status'), fn ($q) => $q->where('status', $request->input('status')))
+            // "flag=pending" reproduit exactement la carte "Retours à traiter" du tableau de bord
+            // Service client, qui regroupe deux statuts (demande + acceptée) — pas de simple
+            // égalité possible via le paramètre "status" à valeur unique.
+            ->when($request->input('flag') === 'pending', fn ($q) => $q->whereIn('status', ['demandee', 'acceptee']))
             ->latest()
             ->paginate(20)
             ->withQueryString();
@@ -41,7 +46,15 @@ class ReturnController extends Controller
             ]);
         }
 
-        return view('admin.returns.index', ['returns' => $returns]);
+        $statusCounts = ProductReturn::query()
+            ->selectRaw('status, count(*) as total')
+            ->groupBy('status')
+            ->pluck('total', 'status');
+
+        return view('admin.returns.index', [
+            'returns' => $returns,
+            'statusCounts' => $statusCounts,
+        ]);
     }
 
     public function update(Request $request, ProductReturn $return): RedirectResponse

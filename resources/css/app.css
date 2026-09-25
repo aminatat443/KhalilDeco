@@ -12,23 +12,55 @@
         'Segoe UI Symbol', 'Noto Color Emoji';
     --font-display: 'Fraunces', ui-serif, Georgia, serif;
 
-    /* Palette KhalilShop — docs/SPEC.md §3 (validée par le client) */
-    --color-primary: #d77a61;
-    --color-primary-tint: #FBF2EF;
-    --color-primary-shade: #c26e57;
-    --color-secondary: #2F4F4F;
-    --color-secondary-tint: #AFB7A9;
-    --color-secondary-shade: #213737;
-    --color-tertiary: #D7B661;
-    --color-tertiary-tint: #E7D3A0;
-    --color-tertiary-shade: #C2A457;
-    --color-grey: #333333;
-    --color-grey-tint: #f5f5f5;
-    --color-grey-shade: #212529;
+    /* Charte graphique Khalil Building (docs/SPEC.md §3) — primaire = vert profond (identité,
+       logo, boutons, nav, liens, éléments actifs), secondaire = anthracite (titres, texte,
+       icônes, footer), tertiaire = sable (accents, à utiliser avec parcimonie). */
+    --color-primary: #263F3A;
+    --color-primary-tint: #EEF3F1;
+    --color-primary-shade: #1D302C;
+    --color-secondary: #252525;
+    --color-secondary-tint: #8C8C89;
+    --color-secondary-shade: #141414;
+    --color-tertiary: #C8A875;
+    --color-tertiary-tint: #ECE0CC;
+    --color-tertiary-shade: #B08F5C;
+    --color-grey: #6B6B67;
+    --color-grey-tint: #F5F3EE;
+    --color-grey-shade: #252525;
+}
+
+/* Le vert profond (--color-primary) manque de contraste en mode sombre sur les fonds déjà très
+   sombres (ex. dark:bg-[#16201f]) — les usages de text-primary/hover sans variante dark:
+   explicite (liens, badges, icônes) deviendraient illisibles. Comme les utilitaires Tailwind
+   référencent var(--color-*), une redéfinition de la variable sous .dark suffit à éclaircir
+   tous ces usages d'un coup, sans toucher aux vues. */
+.dark {
+    --color-primary: #4FAE87;
+    --color-primary-shade: #6BC29D;
 }
 
 [x-cloak] {
     display: none !important;
+}
+
+/* Applique l'état "sidebar repliée" dès le tout premier rendu (avant l'hydratation d'Alpine),
+   grâce à la classe posée par le script inline du <head> qui lit localStorage en synchrone.
+   Sans ça, la sidebar s'affiche brièvement en pleine largeur puis se rétracte visiblement
+   dès qu'Alpine applique son binding :class — c'est ce flash qui donnait l'impression que
+   "la sidebar s'affiche puis se ferme" au rechargement. */
+@media (min-width: 1024px) {
+    html.admin-sidebar-collapsed .admin-sidebar {
+        width: 5rem !important;
+    }
+    html.admin-sidebar-collapsed .sidebar-label {
+        display: none !important;
+    }
+    html.admin-sidebar-collapsed [data-sidebar-full-logo] {
+        display: none !important;
+    }
+    html.admin-sidebar-collapsed [data-sidebar-icon-logo] {
+        display: block !important;
+    }
 }
 
 @layer utilities {

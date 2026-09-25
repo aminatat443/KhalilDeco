@@ -2,15 +2,18 @@
     x-data="{ scrolled: false, searchOpen: false, favoritesOpen: false, mobileMenuOpen: false }"
     x-init="
         $store.cart.hydrate({{ Illuminate\Support\Js::from($cartSummary ?? ['items' => [], 'count' => 0, 'subtotal' => 0]) }});
+        $store.favorites.hydrate({{ Illuminate\Support\Js::from($favoritesSummary ?? null) }});
         @if(request()->boolean('login')) $store.ui.openLogin(); @endif
+        @if(request()->boolean('favoris')) favoritesOpen = true; @endif
     "
     @scroll.window="scrolled = window.scrollY > 12"
+    @favorite-added.window="favoritesOpen = true"
     class="sticky top-0 z-50 bg-white"
 >
 
     {{-- Topbar --}}
     <div class="border-b border-secondary-shade/10 px-4 py-1.5 text-center text-[9px] font-medium uppercase tracking-[0.08em] text-grey sm:text-[11px] sm:tracking-[0.2em]">
-        Livraison partout au Sénégal — Nouvelle collection disponible
+        Livraison partout au Sénégal — Décoration, faux plafonds & quincaillerie
     </div>
 
 
@@ -18,7 +21,7 @@
     <div
         x-data="{ open: null }"
         @mouseleave="open = null"
-        :class="scrolled ? 'h-16 border-secondary-shade/10 shadow-[0_1px_0_0_rgba(33,55,55,0.06)]' : 'h-20 border-transparent'"
+        :class="scrolled ? 'h-20 border-secondary-shade/10 shadow-[0_1px_0_0_rgba(33,55,55,0.06)]' : 'h-24 border-transparent'"
         class="relative border-b bg-white transition-[height] duration-300"
     >
         <div class="mx-auto grid h-full max-w-[1600px] grid-cols-[auto_1fr_auto] items-center gap-4 px-6 sm:px-10 xl:flex xl:gap-10">
@@ -31,18 +34,18 @@
             {{-- Logo : centré dans l'espace disponible entre le menu et les actions sur mobile/tablette
                  (grille, jamais de chevauchement possible), aligné à gauche dans le flux normal à partir de xl --}}
             <a href="{{ route('home') }}" class="col-start-2 shrink-0 justify-self-center xl:justify-self-auto">
-                <img src="{{ asset('images/Khalil_shop-cropped.svg') }}" alt="KhalilShop" class="h-10 w-auto sm:h-12">
+                <img src="{{ asset('images/logo_khalil_deco_full.png') }}" alt="Khalil Déco" class="h-14 w-auto sm:h-16">
             </a>
 
 
             {{-- Navigation catégories --}}
-            <nav class="hidden h-full flex-1 items-center justify-center gap-8 xl:flex">
+            <nav class="hidden h-full flex-1 items-center justify-center gap-5 xl:flex 2xl:gap-8">
                 @foreach($navCategories ?? [] as $universe)
                     <div class="relative flex h-full items-center" @mouseenter="open = {{ $universe->id }}">
                         <a
                             href="{{ route('catalog.show', $universe) }}"
                             :class="open === {{ $universe->id }} ? 'text-primary' : 'text-secondary-shade'"
-                            class="text-[13px] font-medium uppercase tracking-[0.12em] transition hover:text-primary"
+                            class="whitespace-nowrap text-[13px] font-medium uppercase tracking-[0.12em] transition hover:text-primary"
                         >
                             {{ $universe->name }}
                         </a>
@@ -141,7 +144,7 @@
 
                                 {{-- Le staff (Gestionnaire/Admin/Super Admin) n'achète pas sur la boutique :
                                      pas de "Mes commandes" ni de favoris pour ces rôles. --}}
-                                @unless(auth()->user()->isGestionnaire())
+                                @unless(auth()->user()->isStaffMember())
                                     <a href="{{ route('account.orders') }}" class="block px-5 py-2.5 text-sm text-secondary-shade transition hover:text-primary">
                                         Mes commandes
                                     </a>
@@ -170,7 +173,7 @@
                     </button>
                 @endauth
 
-                @unless(auth()->check() && auth()->user()->isGestionnaire())
+                @unless(auth()->check() && auth()->user()->isStaffMember())
                 <button type="button" @click="favoritesOpen = true" class="relative text-secondary-shade transition hover:text-primary" aria-label="Favoris">
                     <i class="fa-regular fa-heart text-[17px]"></i>
                     <template x-if="$store.favorites.items.length > 0">
@@ -179,7 +182,7 @@
                 </button>
                 @endunless
 
-                @if(auth()->check() && auth()->user()->isGestionnaire())
+                @if(auth()->check() && auth()->user()->isStaffMember())
                     <a href="{{ route('admin.dashboard') }}" class="text-secondary-shade transition hover:text-primary" aria-label="Back-office">
                         <i class="fa-solid fa-gauge text-[17px]"></i>
                     </a>
@@ -294,7 +297,7 @@
             class="absolute left-0 top-0 flex h-full w-full max-w-xs flex-col overflow-y-auto bg-white"
         >
             <div class="flex items-center justify-between border-b border-secondary-shade/10 px-6 py-5">
-                <img src="{{ asset('images/Khalil_shop-cropped.svg') }}" alt="KhalilShop" class="h-9 w-auto">
+                <img src="{{ asset('images/logo_khalil_deco_full.png') }}" alt="Khalil Déco" class="h-14 w-auto">
                 <button type="button" @click="mobileMenuOpen = false" class="text-secondary-shade transition hover:text-primary" aria-label="Fermer">
                     <i class="fa-solid fa-xmark text-lg"></i>
                 </button>
@@ -363,7 +366,7 @@
                         <i class="fa-solid fa-user mr-2 w-4 text-center"></i>Mon profil
                     </a>
 
-                    @unless(auth()->user()->isGestionnaire())
+                    @unless(auth()->user()->isStaffMember())
                         <a href="{{ route('account.orders') }}" @click="mobileMenuOpen = false" class="block px-2 py-2.5 text-sm text-secondary-shade transition hover:text-primary">
                             <i class="fa-solid fa-box mr-2 w-4 text-center"></i>Mes commandes
                         </a>
@@ -445,52 +448,53 @@
                             </div>
                         </div>
 
-                        {{-- Taille/couleur choisies ici, au moment de la commande, plutôt qu'à l'ajout au panier --}}
+                        {{-- Attributs (couleur, dimension...) choisis ici, au moment de la commande, plutôt qu'à l'ajout au panier --}}
                         <template x-if="item.needs_variant">
-                            <div x-data="{ colorId: null, sizeId: null }" class="mt-4 bg-primary-tint/40 p-4">
+                            <div
+                                x-data="{
+                                    selected: {},
+                                    toggleValue(attributeId, valueId) {
+                                        this.selected[attributeId] = this.selected[attributeId] === valueId ? null : valueId;
+                                    },
+                                    get selectedValueIds() {
+                                        return Object.values(this.selected).filter(v => v !== null && v !== undefined);
+                                    },
+                                    get matchedVariant() {
+                                        if (this.selectedValueIds.length !== item.variant_options.attributes.length) return null;
+                                        return item.variant_options.variants.find(v => v.values.length === this.selectedValueIds.length
+                                            && this.selectedValueIds.every(id => v.values.includes(id))) ?? null;
+                                    },
+                                }"
+                                class="mt-4 bg-primary-tint/40 p-4"
+                            >
                                 <p class="mb-3 text-xs font-medium text-primary-shade">
-                                    <i class="fa-solid fa-circle-info mr-1.5"></i>Choisissez une taille et une couleur
+                                    <i class="fa-solid fa-circle-info mr-1.5"></i>Choisissez les options de cet article
                                 </p>
 
-                                <template x-if="item.variant_options.colors.length > 0">
-                                    <div class="mb-3 flex flex-wrap gap-2">
-                                        <template x-for="color in item.variant_options.colors" :key="color.id">
-                                            <button
-                                                type="button"
-                                                @click="colorId = color.id"
-                                                :class="colorId === color.id ? 'ring-2 ring-offset-1 ring-secondary-shade' : 'ring-1 ring-secondary-shade/20'"
-                                                class="h-7 w-7 rounded-full"
-                                                :style="'background-color: ' + (color.hex || '#ccc')"
-                                                :title="color.name"
-                                            ></button>
-                                        </template>
-                                    </div>
-                                </template>
-
-                                <template x-if="item.variant_options.sizes.length > 0">
-                                    <div class="mb-3 flex flex-wrap gap-2">
-                                        <template x-for="size in item.variant_options.sizes" :key="size.id">
-                                            <button
-                                                type="button"
-                                                @click="sizeId = size.id"
-                                                :class="sizeId === size.id ? 'border-secondary-shade text-secondary-shade' : 'border-secondary-shade/20 text-secondary-shade'"
-                                                class="border px-3 py-1.5 text-xs"
-                                                x-text="size.name"
-                                            ></button>
-                                        </template>
+                                <template x-for="attribute in item.variant_options.attributes" :key="attribute.id">
+                                    <div class="mb-3">
+                                        <p class="mb-1.5 text-[11px] font-medium uppercase tracking-[0.08em] text-secondary-shade/70" x-text="attribute.name"></p>
+                                        <div class="flex flex-wrap gap-2">
+                                            <template x-for="value in attribute.values" :key="value.id">
+                                                <button
+                                                    type="button"
+                                                    @click="toggleValue(attribute.id, value.id)"
+                                                    :class="attribute.type === 'color'
+                                                        ? ['h-7 w-7 rounded-full', selected[attribute.id] === value.id ? 'ring-2 ring-offset-1 ring-secondary-shade' : 'ring-1 ring-secondary-shade/20']
+                                                        : ['border px-3 py-1.5 text-xs', selected[attribute.id] === value.id ? 'border-secondary-shade text-secondary-shade' : 'border-secondary-shade/20 text-secondary-shade']"
+                                                    :style="attribute.type === 'color' ? ('background-color: ' + (value.colorCode || '#ccc')) : ''"
+                                                    :title="value.value"
+                                                    x-text="attribute.type === 'color' ? '' : value.value"
+                                                ></button>
+                                            </template>
+                                        </div>
                                     </div>
                                 </template>
 
                                 <button
                                     type="button"
-                                    x-show="(item.variant_options.colors.length === 0 || colorId) && (item.variant_options.sizes.length === 0 || sizeId)"
-                                    @click="
-                                        const match = item.variant_options.variants.find(v =>
-                                            (item.variant_options.colors.length === 0 || v.color_id === colorId) &&
-                                            (item.variant_options.sizes.length === 0 || v.size_id === sizeId)
-                                        );
-                                        if (match) $store.cart.chooseVariant(item.product_id, match.id);
-                                    "
+                                    x-show="matchedVariant"
+                                    @click="if (matchedVariant) $store.cart.chooseVariant(item.product_id, matchedVariant.id)"
                                     class="w-full bg-secondary-shade py-2.5 text-xs font-semibold uppercase tracking-[0.08em] text-white transition hover:bg-primary"
                                 >
                                     Valider
@@ -509,7 +513,7 @@
                     </div>
                     <a
                         href="{{ route('checkout.index') }}"
-                        :class="$store.cart.items.some(i => i.needs_variant) ? 'pointer-events-none cursor-not-allowed bg-grey-tint text-grey/60' : 'bg-secondary-shade text-white hover:bg-primary'"
+                        :class="$store.cart.items.some(i => i.needs_variant) ? 'pointer-events-none cursor-not-allowed bg-grey-tint text-grey/60' : 'bg-primary text-white hover:bg-primary-shade'"
                         class="block px-6 py-4 text-center text-xs font-semibold uppercase tracking-[0.15em] transition"
                     >
                         Commander
@@ -590,6 +594,27 @@
                 success: null,
                 unverifiedEmail: null,
                 resending: false,
+                googleLoading: false,
+                googlePopup: null,
+                openGoogleAuth() {
+                    this.error = null;
+                    const url = '{{ route('auth.google') }}';
+                    const w = 480, h = 640;
+                    const left = window.screenX + (window.outerWidth - w) / 2;
+                    const top = window.screenY + (window.outerHeight - h) / 2;
+                    this.googlePopup = window.open(url, 'khalil-google-auth', `width=${w},height=${h},left=${left},top=${top}`);
+                    if (! this.googlePopup) {
+                        window.location.href = url;
+                        return;
+                    }
+                    this.googleLoading = true;
+                    const poll = setInterval(() => {
+                        if (this.googlePopup && this.googlePopup.closed) {
+                            clearInterval(poll);
+                            this.googleLoading = false;
+                        }
+                    }, 400);
+                },
                 resendVerification() {
                     this.resending = true;
                     fetch('{{ route('verification.resend') }}', {
@@ -605,6 +630,18 @@
                         .finally(() => { this.resending = false; });
                 },
             }"
+            x-init="
+                window.addEventListener('message', (e) => {
+                    if (e.origin !== window.location.origin || ! e.data || e.data.khalilGoogleAuth !== true) return;
+                    googleLoading = false;
+                    if (googlePopup) { googlePopup.close(); googlePopup = null; }
+                    if (e.data.success) {
+                        window.location.href = e.data.redirect;
+                    } else {
+                        error = e.data.message || 'La connexion avec Google a échoué. Réessayez.';
+                    }
+                });
+            "
             x-show="$store.ui.loginOpen"
             x-transition:enter="transition ease-out duration-250" x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100"
             x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100 scale-100" x-transition:leave-end="opacity-0 scale-95"
@@ -619,20 +656,23 @@
             <template x-if="$store.ui.authMode === 'login'">
                 <div>
                     <h2 class="font-display text-2xl italic text-secondary-shade sm:text-3xl">Connexion</h2>
-                    <p class="mt-2 text-sm text-grey">Accédez à votre compte KhalilShop.</p>
+                    <p class="mt-2 text-sm text-grey">Accédez à votre compte Khalil Déco.</p>
 
-                    <a
-                        href="{{ route('auth.google') }}"
-                        class="mt-8 flex w-full items-center justify-center gap-3 border border-secondary-shade/20 py-3.5 text-xs font-semibold uppercase tracking-[0.1em] text-secondary-shade transition hover:border-secondary-shade"
+                    <button
+                        type="button"
+                        @click="openGoogleAuth()"
+                        :disabled="googleLoading"
+                        class="mt-8 flex w-full items-center justify-center gap-3 border border-secondary-shade/20 py-3.5 text-xs font-semibold uppercase tracking-[0.1em] text-secondary-shade transition hover:border-secondary-shade disabled:opacity-50"
                     >
-                        <svg class="h-4 w-4" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg">
+                        <svg x-show="! googleLoading" class="h-4 w-4" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg">
                             <path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z"/>
                             <path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332C2.438 15.983 5.482 18 9 18z"/>
                             <path fill="#FBBC05" d="M3.964 10.71A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.042l3.007-2.332z"/>
                             <path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0 5.482 0 2.438 2.017.957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z"/>
                         </svg>
-                        Continuer avec Google
-                    </a>
+                        <i x-show="googleLoading" x-cloak class="fa-solid fa-circle-notch fa-spin text-sm"></i>
+                        <span x-text="googleLoading ? 'En attente de Google…' : 'Continuer avec Google'"></span>
+                    </button>
 
                     <div class="my-6 flex items-center gap-4">
                         <div class="h-px flex-1 bg-secondary-shade/10"></div>
@@ -662,7 +702,7 @@
                                         loading = false;
                                         return;
                                     }
-                                    const redirectUrl = new URL(window.location.href);
+                                    const redirectUrl = new URL(data.redirect ?? window.location.href, window.location.origin);
                                     redirectUrl.searchParams.delete('login');
                                     window.location.href = redirectUrl.toString();
                                 })
@@ -694,7 +734,7 @@
                             <p class="text-sm text-red-600" x-text="error"></p>
                         </template>
 
-                        <button type="submit" :disabled="loading" class="w-full bg-secondary-shade px-6 py-4 text-xs font-semibold uppercase tracking-[0.15em] text-white transition hover:bg-primary disabled:opacity-50">
+                        <button type="submit" :disabled="loading" class="w-full bg-primary px-6 py-4 text-xs font-semibold uppercase tracking-[0.15em] text-white transition hover:bg-primary-shade disabled:opacity-50">
                             <span x-show="!loading">Se connecter</span>
                             <span x-show="loading">Connexion…</span>
                         </button>
@@ -711,7 +751,7 @@
             <template x-if="$store.ui.authMode === 'register'">
                 <div>
                     <h2 class="font-display text-2xl italic text-secondary-shade sm:text-3xl">Créer un compte</h2>
-                    <p class="mt-2 text-sm text-grey">Rejoignez KhalilShop.</p>
+                    <p class="mt-2 text-sm text-grey">Rejoignez Khalil Déco.</p>
 
                     <template x-if="success">
                         <div class="mt-8 border border-green-200 bg-green-50 px-5 py-4 text-sm text-green-700">
@@ -722,18 +762,21 @@
                     <template x-if="!success">
                     <div>
 
-                    <a
-                        href="{{ route('auth.google') }}"
-                        class="mt-8 flex w-full items-center justify-center gap-3 border border-secondary-shade/20 py-3.5 text-xs font-semibold uppercase tracking-[0.1em] text-secondary-shade transition hover:border-secondary-shade"
+                    <button
+                        type="button"
+                        @click="openGoogleAuth()"
+                        :disabled="googleLoading"
+                        class="mt-8 flex w-full items-center justify-center gap-3 border border-secondary-shade/20 py-3.5 text-xs font-semibold uppercase tracking-[0.1em] text-secondary-shade transition hover:border-secondary-shade disabled:opacity-50"
                     >
-                        <svg class="h-4 w-4" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg">
+                        <svg x-show="! googleLoading" class="h-4 w-4" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg">
                             <path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z"/>
                             <path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332C2.438 15.983 5.482 18 9 18z"/>
                             <path fill="#FBBC05" d="M3.964 10.71A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.042l3.007-2.332z"/>
                             <path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0 5.482 0 2.438 2.017.957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z"/>
                         </svg>
-                        Continuer avec Google
-                    </a>
+                        <i x-show="googleLoading" x-cloak class="fa-solid fa-circle-notch fa-spin text-sm"></i>
+                        <span x-text="googleLoading ? 'En attente de Google…' : 'Continuer avec Google'"></span>
+                    </button>
 
                     <div class="my-6 flex items-center gap-4">
                         <div class="h-px flex-1 bg-secondary-shade/10"></div>
@@ -794,7 +837,7 @@
                             <p class="text-sm text-red-600" x-text="error"></p>
                         </template>
 
-                        <button type="submit" :disabled="loading" class="w-full bg-secondary-shade px-6 py-4 text-xs font-semibold uppercase tracking-[0.15em] text-white transition hover:bg-primary disabled:opacity-50">
+                        <button type="submit" :disabled="loading" class="w-full bg-primary px-6 py-4 text-xs font-semibold uppercase tracking-[0.15em] text-white transition hover:bg-primary-shade disabled:opacity-50">
                             <span x-show="!loading">Créer mon compte</span>
                             <span x-show="loading">Création…</span>
                         </button>

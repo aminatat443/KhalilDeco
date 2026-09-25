@@ -31,13 +31,14 @@ class ReviewController extends Controller
                 ->where('is_approved', false)
                 ->when($request->filled('q'), $search)
                 ->latest()
-                ->get(),
+                ->paginate(15, ['*'], 'pending_page')
+                ->withQueryString(),
             'approved' => Review::with(['user', 'product'])
                 ->where('is_approved', true)
                 ->when($request->filled('q'), $search)
                 ->latest()
-                ->take(20)
-                ->get(),
+                ->paginate(15, ['*'], 'approved_page')
+                ->withQueryString(),
         ];
 
         if ($request->ajax()) {
@@ -46,7 +47,12 @@ class ReviewController extends Controller
             ]);
         }
 
-        return view('admin.reviews.index', $data);
+        $ratingCounts = Review::where('is_approved', true)
+            ->selectRaw('rating, count(*) as total')
+            ->groupBy('rating')
+            ->pluck('total', 'rating');
+
+        return view('admin.reviews.index', $data + ['ratingCounts' => $ratingCounts]);
     }
 
     public function approve(Review $review): RedirectResponse
@@ -65,5 +71,23 @@ class ReviewController extends Controller
         $review->delete();
 
         return back()->with('status', 'Avis supprimé.');
+    }
+
+    public function reply(Request $request, Review $review): RedirectResponse
+    {
+        $this->authorize('reply', $review);
+
+        $data = $request->validate([
+            'admin_reply' => ['nullable', 'string', 'max:2000'],
+        ]);
+
+        $reply = trim($data['admin_reply'] ?? '');
+
+        $review->update([
+            'admin_reply' => $reply !== '' ? $reply : null,
+            'admin_replied_at' => $reply !== '' ? now() : null,
+        ]);
+
+        return back()->with('status', $reply !== '' ? 'Réponse publiée.' : 'Réponse supprimée.');
     }
 }

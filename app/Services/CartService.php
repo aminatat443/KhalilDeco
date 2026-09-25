@@ -2,8 +2,10 @@
 
 namespace App\Services;
 
+use App\Models\Cart;
 use App\Models\Product;
 use App\Models\ProductVariant;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Session;
 
 class CartService
@@ -20,6 +22,7 @@ class CartService
         $cart = $this->raw();
         $cart[$key] = ($cart[$key] ?? 0) + $quantity;
         Session::put(self::SESSION_KEY, $cart);
+        $this->syncPersisted($cart);
     }
 
     public function updateQuantity(int $productId, ?int $variantId, int $quantity): void
@@ -34,6 +37,7 @@ class CartService
         }
 
         Session::put(self::SESSION_KEY, $cart);
+        $this->syncPersisted($cart);
     }
 
     public function remove(int $productId, ?int $variantId): void
@@ -56,11 +60,46 @@ class CartService
         $cart[$newKey] = ($cart[$newKey] ?? 0) + $quantity;
 
         Session::put(self::SESSION_KEY, $cart);
+        $this->syncPersisted($cart);
     }
 
     public function clear(): void
     {
         Session::forget(self::SESSION_KEY);
+
+        if (Auth::check()) {
+            Cart::where('user_id', Auth::id())->delete();
+        }
+    }
+
+    /**
+     * Copie le panier en base pour le client connecté — seule façon de détecter un panier
+     * abandonné depuis une commande planifiée (la session expire après {@see config('session.lifetime')}
+     * minutes, bien avant le délai de relance). Un panier vidé supprime la ligne plutôt que de la
+     * garder vide ; toute modification réinitialise `reminded_at` (nouvel épisode d'abandon).
+     */
+    private function syncPersisted(array $cart): void
+    {
+        if (! Auth::check()) {
+            return;
+        }
+
+        if (empty($cart)) {
+            Cart::where('user_id', Auth::id())->delete();
+
+            return;
+        }
+
+        $items = collect($cart)->map(function (int $quantity, string $key) {
+            [$productId, $variantId] = $this->parseKey($key);
+
+            return ['product_id' => $productId, 'variant_id' => $variantId, 'quantity' => $quantity];
+        })->values()->all();
+
+        Cart::updateOrCreate(
+            ['user_id' => Auth::id()],
+            ['items' => $items, 'reminded_at' => null]
+        );
     }
 
     /**
@@ -82,7 +121,7 @@ class CartService
                 continue; // produit supprimé depuis l'ajout au panier
             }
 
-            $variant = $variantId ? ProductVariant::find($variantId) : null;
+            $variant = $variantId ? ProductVariant::with('attributeValues.attribute')->find($variantId) : null;
             $unitPrice = $this->promotions->effectivePrice($product, $variant);
 
             $items[] = [
@@ -126,9 +165,7 @@ class CartService
                     'variant_options' => $needsVariant ? $this->variantOptions($item['product']) : null,
                     'name' => $item['product']->name,
                     'image' => $item['product']->images->first()?->url,
-                    'variant_label' => $item['variant']
-                        ? collect([$item['variant']->color?->name, $item['variant']->size?->name])->filter()->implode(' / ')
-                        : null,
+                    'variant_label' => $item['variant']?->labelOrNull(),
                     'quantity' => $item['quantity'],
                     'unit_price' => $item['unit_price'],
                     'subtotal' => $item['subtotal'],
@@ -141,26 +178,42 @@ class CartService
     }
 
     /**
-     * Couleurs, tailles et grille des variantes d'un produit, pour permettre au client de
-     * choisir directement dans le panier (docs/SPEC.md — pas de sélection forcée à l'ajout).
+     * Attributs (couleur, puissance...) et grille des variantes d'un produit, pour permettre au
+     * client de choisir directement dans le panier (docs/SPEC.md — pas de sélection forcée à
+     * l'ajout). Dérivés des combinaisons réellement utilisées par les variantes du produit.
      */
     private function variantOptions(Product $product): array
     {
-        $variants = $product->variants()->with(['color', 'size'])->get();
+        $variants = $product->variants()->with('attributeValues.attribute')->get();
+
+        $attributes = $variants
+            ->flatMap(fn ($variant) => $variant->attributeValues)
+            ->groupBy('attribute_id')
+            ->map(function ($values) {
+                $attribute = $values->first()->attribute;
+
+                return [
+                    'id' => $attribute->id,
+                    'name' => $attribute->name,
+                    'type' => $attribute->type,
+                    'sortOrder' => $attribute->sort_order,
+                    'values' => $values->unique('id')->sortBy('sort_order')->values()->map(fn ($v) => [
+                        'id' => $v->id,
+                        'value' => $v->value,
+                        'colorCode' => $v->color_code,
+                    ])->values(),
+                ];
+            })
+            ->sortBy('sortOrder')
+            ->values();
 
         return [
-            'colors' => $variants->pluck('color')->filter()->unique('id')->values()
-                ->map(fn ($color) => ['id' => $color->id, 'name' => $color->name, 'hex' => $color->hex_code])
-                ->all(),
-            'sizes' => $variants->pluck('size')->filter()->unique('id')->values()
-                ->map(fn ($size) => ['id' => $size->id, 'name' => $size->name])
-                ->all(),
+            'attributes' => $attributes,
             'variants' => $variants
                 ->map(fn ($variant) => [
                     'id' => $variant->id,
-                    'color_id' => $variant->color_id,
-                    'size_id' => $variant->size_id,
                     'stock' => $variant->stock,
+                    'values' => $variant->attributeValues->pluck('id')->values(),
                 ])
                 ->all(),
         ];

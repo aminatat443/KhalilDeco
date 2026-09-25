@@ -19,10 +19,12 @@ class EnsureUserIsStaff
      */
     public function handle(Request $request, Closure $next): Response
     {
-        if (! $request->user() || ! $request->user()->isGestionnaire()) {
+        $user = $request->user();
+
+        if (! $user || ! $user->isStaffMember() || ! $user->is_active) {
             $this->security->recordUnauthorizedAccess($request, "Tentative d'accès au back-office ({$request->path()})");
 
-            abort(403, "Accès réservé à l'équipe KhalilShop.");
+            abort(403, "Accès réservé à l'équipe Khalil Déco.");
         }
 
         return $next($request);

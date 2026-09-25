@@ -10,6 +10,7 @@ use App\Models\Product;
 use App\Models\User;
 use App\Notifications\OrderStatusNotification;
 use App\Services\OrderService;
+use Illuminate\Support\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -34,6 +35,19 @@ class OrderController extends Controller
             ->when($request->filled('q'), fn ($q) => $q->where('order_number', 'ilike', '%'.$request->input('q').'%')
                 ->orWhere('customer_name', 'ilike', '%'.$request->input('q').'%'))
             ->when($request->filled('status'), fn ($q) => $q->where('status', $request->input('status')))
+            ->when($request->filled('date'), fn ($q) => $q->whereDate('created_at', $request->input('date')))
+            ->when($request->filled('month'), function ($q) use ($request) {
+                $month = Carbon::createFromFormat('Y-m', $request->input('month'));
+                $q->whereYear('created_at', $month->year)->whereMonth('created_at', $month->month);
+            })
+            ->when($request->filled('year'), fn ($q) => $q->whereYear('created_at', $request->input('year')))
+            ->when($request->filled('from'), fn ($q) => $q->whereDate('created_at', '>=', $request->input('from')))
+            ->when($request->filled('to'), fn ($q) => $q->whereDate('created_at', '<=', $request->input('to')))
+            ->when($request->filled('payment_method'), fn ($q) => $q->where('payment_method', $request->input('payment_method')))
+            ->when($request->filled('payment_status'), fn ($q) => $q->where('payment_status', $request->input('payment_status')))
+            ->when($request->input('flag') === 'overdue_shipping', fn ($q) => $q->overdueShipping())
+            ->when($request->input('flag') === 'confirmed_sales', fn ($q) => $q->whereIn('status', Order::CONFIRMED_STATUSES))
+            ->when($request->input('flag') === 'unpaid', fn ($q) => $q->where('payment_status', '!=', 'paid')->where('status', '!=', 'annulee'))
             ->latest()
             ->paginate(20)
             ->withQueryString();
@@ -44,14 +58,23 @@ class OrderController extends Controller
             ]);
         }
 
-        return view('admin.orders.index', ['orders' => $orders]);
+        $statusCounts = Order::query()
+            ->selectRaw('status, count(*) as total')
+            ->groupBy('status')
+            ->pluck('total', 'status');
+
+        return view('admin.orders.index', [
+            'orders' => $orders,
+            'todayCount' => Order::whereDate('created_at', today())->count(),
+            'statusCounts' => $statusCounts,
+        ]);
     }
 
     public function show(Order $order): View
     {
         $this->authorize('view', $order);
 
-        $order->load('items', 'user', 'coupon');
+        $order->load('items', 'user', 'coupon', 'payments');
 
         return view('admin.orders.show', ['order' => $order]);
     }
@@ -65,7 +88,7 @@ class OrderController extends Controller
 
         $products = Product::query()
             ->where('is_active', true)
-            ->with(['images' => fn ($q) => $q->orderBy('sort_order'), 'variants.color', 'variants.size'])
+            ->with(['images' => fn ($q) => $q->orderBy('sort_order'), 'variants.attributeValues.attribute'])
             ->orderBy('name')
             ->get()
             ->map(fn (Product $product) => [
@@ -76,7 +99,7 @@ class OrderController extends Controller
                 'image' => $product->images->first()?->url,
                 'variants' => $product->variants->map(fn ($variant) => [
                     'id' => $variant->id,
-                    'label' => collect([$variant->color?->name, $variant->size?->name])->filter()->implode(' / ') ?: 'Variante',
+                    'label' => $variant->label(),
                     'price' => $variant->price,
                     'stock' => $variant->stock,
                 ]),
@@ -101,17 +124,28 @@ class OrderController extends Controller
 
         $clients = User::query()
             ->where('role', Role::Client)
+            // Exclut les comptes équipe RBAC (Caissier, Comptable...) — ils partagent l'ancien
+            // enum "client" faute d'équivalent hiérarchique, mais ne sont pas des clients à
+            // rattacher à une commande.
+            ->whereNull('role_id')
             ->where(fn ($q) => $q->where('name', 'ilike', "%{$query}%")->orWhere('email', 'ilike', "%{$query}%"))
             ->with(['addresses' => fn ($q) => $q->where('is_default', true)])
             ->orderBy('name')
             ->limit(8)
             ->get()
-            ->map(fn (User $user) => [
-                'id' => $user->id,
-                'name' => $user->name,
-                'email' => $user->email,
-                'phone' => $user->addresses->first()?->phone ?? '',
-            ]);
+            ->map(function (User $user) {
+                $address = $user->addresses->first();
+
+                return [
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'email' => $user->email,
+                    'phone' => $address?->phone ?? '',
+                    'address' => $address
+                        ? collect([$address->address, $address->quartier, $address->city, $address->region])->filter()->join(', ')
+                        : '',
+                ];
+            });
 
         return response()->json($clients);
     }
@@ -168,20 +202,36 @@ class OrderController extends Controller
      * Confirmation manuelle (paiement à la livraison) : décrément atomique du stock
      * (docs/SPEC.md §2.3/§2.4).
      */
-    public function confirm(Order $order): RedirectResponse
+    public function confirm(Request $request, Order $order): RedirectResponse|JsonResponse
     {
         $this->authorize('update', $order);
+
+        // Garde-fou serveur : une commande réglée en ligne (Wave/Orange Money/Carte) ne doit
+        // JAMAIS pouvoir être confirmée manuellement tant que son paiement n'est pas
+        // effectivement passé à "paid" par la vérification serveur (webhook/IPN) — même via un
+        // appel direct à cette route. Seul le paiement à la livraison se confirme manuellement.
+        if ($order->payment_method !== 'cod' && $order->payment_status !== 'paid') {
+            $message = 'Impossible de confirmer : le paiement en ligne de cette commande n\'a pas encore été validé.';
+
+            if ($request->wantsJson()) {
+                return response()->json(['message' => $message], 422);
+            }
+
+            return back()->withErrors(['status' => $message]);
+        }
 
         $success = $this->orders->confirm($order);
 
         $this->notifyStatus($order);
 
-        return back()->with('status', $success
+        $message = $success
             ? 'Commande confirmée, stock mis à jour.'
-            : 'Rupture de stock détectée — la commande a été annulée automatiquement.');
+            : 'Rupture de stock détectée — la commande a été annulée automatiquement.';
+
+        return $this->statusResponse($request, $order, $message);
     }
 
-    public function cancel(Order $order): RedirectResponse
+    public function cancel(Request $request, Order $order): RedirectResponse|JsonResponse
     {
         $this->authorize('cancel', $order);
 
@@ -189,13 +239,13 @@ class OrderController extends Controller
 
         $this->notifyStatus($order);
 
-        return back()->with('status', 'Commande annulée, stock restauré si nécessaire.');
+        return $this->statusResponse($request, $order, 'Commande annulée, stock restauré si nécessaire.');
     }
 
     /**
      * Changement de statut logistique (en préparation / expédiée / livrée) — sans impact sur le stock.
      */
-    public function updateStatus(Request $request, Order $order): RedirectResponse
+    public function updateStatus(Request $request, Order $order): RedirectResponse|JsonResponse
     {
         $this->authorize('update', $order);
 
@@ -207,7 +257,26 @@ class OrderController extends Controller
 
         $this->notifyStatus($order);
 
-        return back()->with('status', 'Statut mis à jour.');
+        return $this->statusResponse($request, $order, 'Statut mis à jour.');
+    }
+
+    /**
+     * Après un changement de statut (confirmer/annuler/étape logistique) : la fiche commande
+     * (badge, suivi, actions) se ré-affiche en place côté client sans recharger la page — même
+     * vue Blade rendue côté serveur, juste injectée via innerHTML plutôt que via une navigation.
+     */
+    private function statusResponse(Request $request, Order $order, string $message): RedirectResponse|JsonResponse
+    {
+        if ($request->wantsJson()) {
+            $order->load('items', 'user', 'coupon', 'payments');
+
+            return response()->json([
+                'message' => $message,
+                'html' => view('admin.orders.partials.detail', ['order' => $order])->render(),
+            ]);
+        }
+
+        return back()->with('status', $message);
     }
 
     /**

@@ -2,28 +2,24 @@
 
 namespace App\Http\Controllers;
 
-use App\Mail\OrderConfirmationMail;
 use App\Models\Coupon;
 use App\Models\Delivery;
 use App\Models\Order;
-use App\Models\User;
-use App\Notifications\NewOrderNotification;
 use App\Services\CartService;
 use App\Services\OrderService;
+use App\Services\PaymentDispatcher;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Mail;
-use Illuminate\Support\Facades\Notification;
 use Illuminate\View\View;
 use InvalidArgumentException;
 use RuntimeException;
-use Throwable;
 
 class CheckoutController extends Controller
 {
     public function __construct(
         private readonly CartService $cart,
         private readonly OrderService $orders,
+        private readonly PaymentDispatcher $payments,
     ) {
     }
 
@@ -31,9 +27,22 @@ class CheckoutController extends Controller
      * Checkout en 4 étapes (section 34 du cahier des charges) : coordonnées, adresse +
      * livraison (combinées), paiement, confirmation — sur une seule page (Alpine).
      */
-    public function index(): View|RedirectResponse
+    public function index(Request $request): View|RedirectResponse
     {
         if (empty($this->cart->items())) {
+            // Le panier est vidé dès la création de la commande, avant même la redirection vers
+            // le prestataire de paiement en ligne — un client qui revient en arrière depuis
+            // PayTech/Wave/Orange Money (au lieu d'utiliser leur propre bouton d'annulation)
+            // atterrit donc ici avec un panier vide, sans jamais avoir vu que sa commande existe
+            // déjà et reste payable. On le renvoie vers elle plutôt que vers un panier vide qui
+            // laisserait croire que la tentative n'a rien laissé.
+            $lastOrderId = $request->session()->get('last_order_id');
+            $pendingOrder = $lastOrderId ? Order::find($lastOrderId) : null;
+
+            if ($pendingOrder && $pendingOrder->status === 'en_attente_paiement') {
+                return redirect()->route('checkout.confirmation', $pendingOrder);
+            }
+
             return redirect()->route('cart.index');
         }
 
@@ -92,15 +101,9 @@ class CheckoutController extends Controller
             'delivery_address' => ['nullable', 'string', 'max:500'],
             'delivery_instructions' => ['nullable', 'string', 'max:500'],
             'delivery_id' => ['required', 'integer', 'exists:deliveries,id'],
-            'payment_method' => ['required', 'in:cod,wave,orange_money,carte'],
+            'payment_method' => ['required', 'in:cod,wave,orange_money,carte,djamo,free_money'],
             'coupon_code' => ['nullable', 'string', 'max:50'],
         ]);
-
-        // Seul le paiement à la livraison est réellement intégré pour l'instant
-        // (docs/SPEC.md §1.2 — agrégateur Wave/OM/carte à choisir avant intégration).
-        if ($data['payment_method'] !== 'cod') {
-            return back()->withErrors(['payment_method' => 'Ce moyen de paiement n\'est pas encore disponible. Choisissez le paiement à la livraison.'])->withInput();
-        }
 
         $delivery = Delivery::findOrFail($data['delivery_id']);
 
@@ -129,7 +132,7 @@ class CheckoutController extends Controller
                     'instructions' => $data['delivery_instructions'] ?? null,
                 ],
                 paymentMethod: $data['payment_method'],
-                deliveryFee: $delivery->fee,
+                deliveryZone: $delivery,
                 coupon: $coupon,
             );
         } catch (InvalidArgumentException $e) {
@@ -161,17 +164,23 @@ class CheckoutController extends Controller
 
         $request->session()->put('last_order_id', $order->id);
 
-        // L'échec d'envoi de l'email (Brevo indisponible, etc.) ne doit jamais faire
-        // échouer la commande, qui est déjà enregistrée en base à ce stade.
-        try {
-            Mail::to($order->customer_email)->send(new OrderConfirmationMail($order));
-        } catch (Throwable $e) {
-            report($e);
+        // Paiement à la livraison : la commande est déjà engagée, on notifie tout de suite.
+        // Paiement en ligne (Wave/Orange Money/Carte) : on ne notifie qu'après confirmation
+        // réelle du paiement (voir PayTechController::ipn) — jamais pour une commande jamais payée.
+        if ($data['payment_method'] === 'cod') {
+            $this->orders->notifyPlaced($order);
+
+            return redirect()->route('checkout.confirmation', $order);
         }
 
-        Notification::send(User::staff()->get(), new NewOrderNotification($order));
+        $payment = $this->payments->initiate($order);
 
-        return redirect()->route('checkout.confirmation', $order);
+        if (! $payment['success']) {
+            return redirect()->route('checkout.confirmation', $order)
+                ->withErrors(['payment_method' => 'Le paiement en ligne est momentanément indisponible. '.($payment['message'] ?? '')]);
+        }
+
+        return redirect()->away($payment['redirect_url']);
     }
 
     /**
@@ -186,7 +195,12 @@ class CheckoutController extends Controller
             403
         );
 
-        return view('checkout.confirmation', ['order' => $order->load('items')]);
+        $order->load('items', 'payments');
+
+        return view('checkout.confirmation', [
+            'order' => $order,
+            'latestPayment' => $order->payments->sortByDesc('created_at')->first(),
+        ]);
     }
 
     private function cartHasPendingVariant(): bool

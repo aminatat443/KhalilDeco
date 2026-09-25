@@ -3,7 +3,7 @@
      pas sur la boutique, et réapparaît à chaque nouvelle session tant que l'adresse
      n'est pas renseignée. --}}
 @auth
-    @unless(auth()->user()->isGestionnaire() || auth()->user()->addresses()->where('is_default', true)->exists())
+    @unless(auth()->user()->isStaffMember() || auth()->user()->addresses()->where('is_default', true)->exists())
         <div
             x-data="{ dismissed: false }"
             x-init="dismissed = sessionStorage.getItem('addressReminderDismissed') === '1'"

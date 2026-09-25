@@ -2,7 +2,7 @@
      qu'un tableau à 7 colonnes en dessous de md. --}}
 <div class="space-y-3 lg:hidden">
     @forelse($orders as $order)
-        <div onclick="window.location='{{ route('admin.orders.show', $order) }}'" class="cursor-pointer bg-white p-4 shadow-sm ring-1 ring-secondary-shade/5 dark:bg-[#16201f] dark:ring-white/5">
+        <div onclick="window.location='{{ route('admin.orders.show', $order) }}'" class="cursor-pointer bg-white p-4 border border-secondary-shade/10 dark:bg-[#16201f] dark:border-white/10">
             <div class="flex items-center justify-between gap-3">
                 <span class="font-medium text-secondary-shade dark:text-white">
                     {{ $order->order_number }}
@@ -31,20 +31,20 @@
                 </div>
             </dl>
             <div class="mt-3 flex items-center justify-end gap-4 border-t border-secondary-shade/10 pt-3 dark:border-white/10" onclick="event.stopPropagation()">
-                <a href="{{ route('orders.invoice', $order) }}" target="_blank" class="text-xs text-secondary-shade hover:text-primary dark:text-white/70" aria-label="Facture">
+                <button type="button" @click.stop="window.dispatchEvent(new CustomEvent('open-invoice-preview', { detail: { url: '{{ $order->invoiceUrl() }}', label: '{{ $order->order_number }}', phone: '{{ $order->customer_phone }}' } }))" class="text-xs text-secondary-shade hover:text-primary dark:text-white/70" aria-label="Facture">
                     <i class="fa-solid fa-file-invoice"></i> Facture
-                </a>
+                </button>
                 <a href="{{ route('admin.orders.show', $order) }}" title="Voir" aria-label="Voir" class="text-xs text-secondary-shade hover:text-primary dark:text-white/70">
                     <i class="fa-solid fa-eye"></i> Voir
                 </a>
             </div>
         </div>
     @empty
-        <div class="bg-white px-6 py-10 text-center text-sm text-grey shadow-sm ring-1 ring-secondary-shade/5 dark:bg-[#16201f] dark:text-white/40 dark:ring-white/5">Aucune commande ne correspond à ces critères.</div>
+        <div class="bg-white px-6 py-10 text-center text-sm text-grey border border-secondary-shade/10 dark:bg-[#16201f] dark:text-white/40 dark:border-white/10">Aucune commande ne correspond à ces critères.</div>
     @endforelse
 </div>
 
-<div class="hidden overflow-x-auto bg-white shadow-sm ring-1 ring-secondary-shade/5 dark:bg-[#16201f] dark:ring-white/5 lg:block">
+<div class="hidden overflow-x-auto bg-white border border-secondary-shade/10 dark:bg-[#16201f] dark:border-white/10 lg:block">
     <table class="w-full text-sm">
         <thead>
             <tr class="border-b border-secondary-shade/10 text-left text-xs uppercase tracking-[0.1em] text-grey dark:border-white/10 dark:text-white/40">
@@ -67,16 +67,16 @@
                         @endif
                     </td>
                     <td class="px-6 py-4 text-grey dark:text-white/50">{{ $order->customer_name }}</td>
-                    <td class="px-6 py-4 text-secondary-shade dark:text-white">{{ number_format($order->total, 0, ',', ' ') }} FCFA</td>
+                    <td class="whitespace-nowrap px-6 py-4 text-secondary-shade dark:text-white">{{ number_format($order->total, 0, ',', ' ') }} FCFA</td>
                     <td class="px-6 py-4 text-grey dark:text-white/50">{{ $order->payment_status === 'paid' ? 'Payé' : 'En attente' }}</td>
                     <td class="px-6 py-4" onclick="event.stopPropagation()">
                         <x-order-status-badge :order="$order" />
                     </td>
                     <td class="px-6 py-4 text-xs text-grey dark:text-white/40">{{ $order->created_at->format('d/m/Y H:i') }}</td>
-                    <td class="px-6 py-4 text-right" onclick="event.stopPropagation()">
-                        <a href="{{ route('orders.invoice', $order) }}" target="_blank" class="mr-4 text-xs text-secondary-shade hover:text-primary dark:text-white/70" aria-label="Facture">
+                    <td class="whitespace-nowrap px-6 py-4 text-right" onclick="event.stopPropagation()">
+                        <button type="button" @click.stop="window.dispatchEvent(new CustomEvent('open-invoice-preview', { detail: { url: '{{ $order->invoiceUrl() }}', label: '{{ $order->order_number }}', phone: '{{ $order->customer_phone }}' } }))" class="mr-4 text-xs text-secondary-shade hover:text-primary dark:text-white/70" aria-label="Facture">
                             <i class="fa-solid fa-file-invoice"></i>
-                        </a>
+                        </button>
                         <a href="{{ route('admin.orders.show', $order) }}" title="Voir" aria-label="Voir" class="inline-flex h-8 w-8 items-center justify-center text-sm text-secondary-shade hover:text-primary dark:text-white/70"><i class="fa-solid fa-eye"></i></a>
                     </td>
                 </tr>

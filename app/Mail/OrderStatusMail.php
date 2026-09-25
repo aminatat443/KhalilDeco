@@ -23,7 +23,7 @@ class OrderStatusMail extends Mailable
         $label = Order::STATUS_LABELS[$this->order->status] ?? $this->order->status;
 
         return new Envelope(
-            subject: 'Commande '.$this->order->order_number.' — '.$label.' — KhalilShop',
+            subject: 'Commande '.$this->order->order_number.' — '.$label.' — Khalil Déco',
         );
     }
 

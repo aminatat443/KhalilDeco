@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Mon profil — KhalilShop')
+@section('title', 'Mon profil — Khalil Déco')
 
 @section('content')
 <div class="mx-auto max-w-4xl px-6 py-16 sm:px-10">
@@ -15,14 +15,14 @@
         </div>
     </div>
 
-    @unless($user->isGestionnaire())
+    @unless($user->isStaffMember())
         <div class="mt-10">
             <x-account-nav active="profil" />
         </div>
     @endunless
 
     {{-- Le staff n'achète pas sur la boutique, pas besoin d'adresse de livraison. --}}
-    @unless($user->isGestionnaire())
+    @unless($user->isStaffMember())
         <div id="adresse" class="mt-10 scroll-mt-24">
             <div class="flex items-center gap-2.5">
                 <i class="fa-solid fa-location-dot text-sm text-primary"></i>
@@ -135,7 +135,7 @@
 
     {{-- Le staff (Gestionnaire/Admin/Super Admin) n'achète pas sur la boutique : pas d'historique
          de commandes pour ces rôles, seul le profil est pertinent. --}}
-    @unless($user->isGestionnaire())
+    @unless($user->isStaffMember())
         <div class="mt-12 flex items-center justify-between">
             <div class="flex items-center gap-2.5">
                 <i class="fa-solid fa-bag-shopping text-sm text-primary"></i>
@@ -179,7 +179,7 @@
             action="{{ route('account.destroy') }}"
             method="POST"
             class="mt-4"
-            onsubmit="return confirm('Supprimer définitivement votre compte KhalilShop ? Cette action est irréversible.');"
+            onsubmit="return confirm('Supprimer définitivement votre compte Khalil Déco ? Cette action est irréversible.');"
         >
             @csrf
             @method('DELETE')

@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', $order->order_number.' — KhalilShop')
+@section('title', $order->order_number.' — Khalil Déco')
 
 @section('content')
 
@@ -38,6 +38,20 @@
         <div class="mt-10 border border-red-200 bg-red-50 px-6 py-5 text-sm text-red-700">
             <i class="fa-solid fa-circle-xmark mr-2"></i>Cette commande a été annulée.
         </div>
+    @elseif($order->status === 'en_attente_paiement')
+        <div class="mt-10 border border-tertiary-shade/40 bg-tertiary-shade/5 px-6 py-6 text-center text-sm text-secondary-shade">
+            <i class="fa-solid fa-hourglass-half mr-2 text-tertiary-shade"></i>
+            @if(in_array($latestPayment?->status, ['cancelled', 'failed'], true))
+                Le paiement n'a pas été effectué. Votre commande est toujours en attente de paiement.
+            @else
+                Votre commande a été enregistrée. Il ne reste plus qu'à finaliser le paiement pour qu'elle soit confirmée.
+            @endif
+            <div class="mt-4">
+                <a href="{{ route('payment.retry', $order) }}" class="inline-block bg-secondary-shade px-8 py-3 text-xs font-semibold uppercase tracking-[0.15em] text-white transition hover:bg-primary">
+                    Payer maintenant
+                </a>
+            </div>
+        </div>
     @else
         <div class="mt-12 overflow-x-auto border border-secondary-shade/10 bg-white p-5 shadow-sm sm:p-8">
             <div class="flex items-start justify-between gap-1 sm:gap-0">
@@ -47,7 +61,7 @@
                         <div class="flex w-full items-center">
                             <div class="h-px flex-1 {{ $stepIndex === 0 ? 'bg-transparent' : ($stepIndex <= $currentIndex ? 'bg-primary' : 'bg-grey-tint') }}"></div>
                             <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[10px] font-bold {{ $stepIndex <= $currentIndex ? 'bg-primary text-white' : 'bg-grey-tint text-grey' }}">
-                                @if($stepIndex < $currentIndex)
+                                @if($stepIndex < $currentIndex || $order->status === 'livree')
                                     <i class="fa-solid fa-check text-[9px]"></i>
                                 @else
                                     {{ $stepIndex + 1 }}
@@ -97,7 +111,7 @@
                                     <input type="hidden" name="order_item_id" value="{{ $item->id }}">
                                     <select name="reason" required class="w-full border-b border-secondary-shade/20 bg-transparent py-2 text-sm outline-none focus:border-primary">
                                         <option value="">Motif du retour</option>
-                                        <option value="taille">Taille inadaptée</option>
+                                        <option value="taille">Dimensions incorrectes</option>
                                         <option value="defaut">Article défectueux</option>
                                         <option value="description">Ne correspond pas à la description</option>
                                         <option value="autre">Autre</option>
@@ -120,7 +134,7 @@
                 <h2 class="text-xs font-semibold uppercase tracking-[0.15em] text-secondary-shade">Résumé</h2>
                 <div class="mt-4 space-y-1.5 text-sm text-grey">
                     <div class="flex justify-between"><span>Sous-total</span><span>{{ number_format($order->subtotal, 0, ',', ' ') }} FCFA</span></div>
-                    <div class="flex justify-between"><span>Livraison</span><span>{{ number_format($order->delivery_fee, 0, ',', ' ') }} FCFA</span></div>
+                    <div class="flex justify-between"><span>Livraison{{ $order->delivery_zone ? ' ('.$order->delivery_zone.')' : '' }}</span><span>{{ number_format($order->delivery_fee, 0, ',', ' ') }} FCFA</span></div>
                     @if($order->discount > 0)
                         <div class="flex justify-between text-primary"><span>Réduction</span><span>-{{ number_format($order->discount, 0, ',', ' ') }} FCFA</span></div>
                     @endif
@@ -141,6 +155,13 @@
                 @endif
                 <p class="mt-4 text-xs font-semibold uppercase tracking-[0.15em] text-secondary-shade">Paiement</p>
                 <p class="mt-2">{{ $order->paymentMethodLabel() }}</p>
+                <p class="mt-1 text-xs font-medium {{ $order->payment_status === 'paid' ? 'text-primary' : 'text-tertiary-shade' }}">
+                    @if($order->payment_status === 'paid')
+                        <i class="fa-solid fa-circle-check mr-1"></i>Payé
+                    @else
+                        <i class="fa-solid fa-hourglass-half mr-1"></i>En attente de paiement
+                    @endif
+                </p>
             </div>
         </div>
 

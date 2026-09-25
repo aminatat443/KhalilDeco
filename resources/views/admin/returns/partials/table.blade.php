@@ -1,6 +1,6 @@
 <div class="space-y-3 lg:hidden">
     @forelse($returns as $return)
-        <div class="bg-white p-4 shadow-sm ring-1 ring-secondary-shade/5 dark:bg-[#16201f] dark:ring-white/5">
+        <div class="bg-white p-4 border border-secondary-shade/10 dark:bg-[#16201f] dark:border-white/10">
             <div class="flex items-center justify-between gap-3">
                 <span class="truncate font-medium text-secondary-shade dark:text-white">{{ $return->orderItem->product_name }}</span>
                 <span class="shrink-0 text-xs text-grey dark:text-white/40">{{ $return->created_at->format('d/m/Y') }}</span>
@@ -13,7 +13,7 @@
                 <div>
                     <dt class="text-grey/60 dark:text-white/30">Motif</dt>
                     <dd class="mt-0.5 text-secondary-shade dark:text-white">
-                        {{ ['taille' => 'Taille', 'defaut' => 'Défaut', 'description' => 'Description', 'autre' => 'Autre'][$return->reason] ?? $return->reason }}
+                        {{ ['taille' => 'Dimensions', 'defaut' => 'Défaut', 'description' => 'Description', 'autre' => 'Autre'][$return->reason] ?? $return->reason }}
                         @if($return->description)
                             <span class="block text-grey/70 dark:text-white/30">{{ $return->description }}</span>
                         @endif
@@ -31,11 +31,11 @@
             </form>
         </div>
     @empty
-        <div class="bg-white px-6 py-10 text-center text-sm text-grey shadow-sm ring-1 ring-secondary-shade/5 dark:bg-[#16201f] dark:text-white/40 dark:ring-white/5">Aucune demande de retour.</div>
+        <div class="bg-white px-6 py-10 text-center text-sm text-grey border border-secondary-shade/10 dark:bg-[#16201f] dark:text-white/40 dark:border-white/10">Aucune demande de retour.</div>
     @endforelse
 </div>
 
-<div class="hidden overflow-x-auto bg-white shadow-sm ring-1 ring-secondary-shade/5 dark:bg-[#16201f] dark:ring-white/5 lg:block">
+<div class="hidden overflow-x-auto bg-white border border-secondary-shade/10 dark:bg-[#16201f] dark:border-white/10 lg:block">
     <table class="w-full text-sm">
         <thead>
             <tr class="border-b border-secondary-shade/10 text-left text-xs uppercase tracking-[0.1em] text-grey dark:border-white/10 dark:text-white/40">
@@ -52,7 +52,7 @@
                     <td class="px-6 py-4 text-secondary-shade dark:text-white">{{ $return->orderItem->product_name }}</td>
                     <td class="px-6 py-4 text-grey dark:text-white/50">{{ $return->orderItem->order->order_number }}</td>
                     <td class="px-6 py-4 text-grey dark:text-white/50">
-                        {{ ['taille' => 'Taille', 'defaut' => 'Défaut', 'description' => 'Description', 'autre' => 'Autre'][$return->reason] ?? $return->reason }}
+                        {{ ['taille' => 'Dimensions', 'defaut' => 'Défaut', 'description' => 'Description', 'autre' => 'Autre'][$return->reason] ?? $return->reason }}
                         @if($return->description)
                             <span class="block text-xs text-grey/70 dark:text-white/30">{{ $return->description }}</span>
                         @endif
