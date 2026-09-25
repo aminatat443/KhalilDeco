@@ -7,7 +7,6 @@
         @if(request()->boolean('favoris')) favoritesOpen = true; @endif
     "
     @scroll.window="scrolled = window.scrollY > 12"
-    @favorite-added.window="favoritesOpen = true"
     class="sticky top-0 z-50 bg-white"
 >
 

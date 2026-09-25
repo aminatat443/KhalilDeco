@@ -11,6 +11,7 @@
         chatOpen: false,
         input: '',
         sending: false,
+        keyboardOffset: 0,
         messages: [
             { role: 'assistant', content: 'Bonjour ! Je suis l\'assistant Khalil Déco. Posez-moi une question sur la livraison, les retours, le paiement ou votre compte.' },
         ],
@@ -22,6 +23,18 @@
             this.chatOpen = true;
             this.menuOpen = false;
             this.$nextTick(() => this.scrollToBottom());
+        },
+        // Sur mobile, le clavier virtuel ne redimensionne pas la fenêtre `fixed` (elle garde sa
+        // position d'origine et se retrouve cachée derrière le clavier) — on suit la hauteur
+        // réelle visible via visualViewport pour remonter la fenêtre de chat au-dessus du clavier.
+        trackKeyboard() {
+            if (! window.visualViewport) return;
+            const update = () => {
+                this.keyboardOffset = Math.max(0, window.innerHeight - window.visualViewport.height - window.visualViewport.offsetTop);
+            };
+            window.visualViewport.addEventListener('resize', update);
+            window.visualViewport.addEventListener('scroll', update);
+            update();
         },
         async send() {
             const text = this.input.trim();
@@ -55,6 +68,7 @@
             if (this.$refs.scrollArea) this.$refs.scrollArea.scrollTop = this.$refs.scrollArea.scrollHeight;
         },
     }"
+    x-init="trackKeyboard()"
     @click.outside="menuOpen = false"
     class="fixed bottom-6 right-6 z-[80]"
 >
@@ -111,7 +125,8 @@
         x-transition:leave-start="opacity-100"
         x-transition:leave-end="opacity-0"
         x-cloak
-        class="fixed inset-x-4 bottom-24 top-36 z-[80] flex min-h-0 flex-col border border-secondary-shade/10 bg-white shadow-2xl sm:absolute sm:inset-x-auto sm:inset-y-auto sm:bottom-[4.5rem] sm:right-0 sm:top-auto sm:z-auto sm:h-[28rem] sm:w-[22rem] sm:max-w-[calc(100vw-3rem)]"
+        :style="keyboardOffset > 0 && window.innerWidth < 640 ? { bottom: (96 + keyboardOffset) + 'px' } : {}"
+        class="fixed right-4 top-36 bottom-24 z-[80] flex w-[80vw] max-w-xs min-h-0 flex-col border border-secondary-shade/10 bg-white shadow-2xl sm:absolute sm:right-0 sm:top-auto sm:bottom-[4.5rem] sm:z-auto sm:h-[28rem] sm:w-[22rem] sm:max-w-[calc(100vw-3rem)]"
     >
         <div class="flex shrink-0 items-center justify-between border-b border-secondary-shade/10 bg-secondary-shade px-5 py-4">
             <p class="text-sm font-medium text-white">Assistant Khalil Déco</p>

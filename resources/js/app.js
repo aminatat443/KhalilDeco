@@ -145,12 +145,6 @@ document.addEventListener('alpine:init', () => {
             this.items = isFavorite ? [...this.items, product] : this.items.filter((item) => item.id !== product.id);
             this.persist();
             this.syncToServer(product.id, isFavorite);
-
-            // Confirmation visuelle : le tiroir des favoris s'ouvre à l'ajout (pas au retrait) —
-            // écouté par le header, qui détient l'état d'ouverture du tiroir (favoritesOpen).
-            if (isFavorite) {
-                window.dispatchEvent(new CustomEvent('favorite-added'));
-            }
         },
 
         remove(id) {
