@@ -109,7 +109,7 @@
                 </button>
 
                 @guest
-                    <button type="button" @click="$store.ui.openLogin()" class="text-secondary-shade transition hover:text-primary xl:hidden" aria-label="Se connecter">
+                    <button type="button" @click="$store.ui.openLogin()" class="cursor-pointer text-secondary-shade transition hover:text-primary xl:hidden" aria-label="Se connecter">
                         <i class="fa-regular fa-user text-[17px]"></i>
                     </button>
                 @endguest
@@ -167,7 +167,7 @@
                         </div>
                     </div>
                 @else
-                    <button type="button" @click="$store.ui.openLogin()" class="hidden items-center gap-2 text-secondary-shade transition hover:text-primary xl:inline-flex" aria-label="Se connecter">
+                    <button type="button" @click="$store.ui.openLogin()" class="hidden cursor-pointer items-center gap-2 text-secondary-shade transition hover:text-primary xl:inline-flex" aria-label="Se connecter">
                         <i class="fa-regular fa-user text-[17px]"></i>
                         <span class="text-[13px] font-medium">Se connecter</span>
                     </button>
@@ -386,7 +386,7 @@
                         </button>
                     </form>
                 @else
-                    <button type="button" @click="mobileMenuOpen = false; $store.ui.openLogin()" class="flex w-full items-center justify-center gap-2 bg-secondary-shade px-6 py-3.5 text-xs font-semibold uppercase tracking-[0.15em] text-white transition hover:bg-primary">
+                    <button type="button" @click="mobileMenuOpen = false; $store.ui.openLogin()" class="flex w-full cursor-pointer items-center justify-center gap-2 bg-secondary-shade px-6 py-3.5 text-xs font-semibold uppercase tracking-[0.15em] text-white transition hover:bg-primary">
                         <i class="fa-regular fa-user"></i>
                         Se connecter
                     </button>

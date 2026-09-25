@@ -346,7 +346,7 @@
                 <button
                     type="button"
                     @click="window.dispatchEvent(new CustomEvent('open-command-palette'))"
-                    class="flex w-72 items-center gap-2.5 border border-secondary-shade/15 bg-grey-tint/40 px-3.5 py-2 text-left text-xs text-grey transition hover:border-secondary-shade/30 dark:border-white/10 dark:bg-white/5 dark:text-white/40 dark:hover:border-white/20 justify-self-center"
+                    class="flex w-72 items-center gap-2.5 border border-secondary-shade/15 bg-white px-3.5 py-2 text-left text-xs text-grey transition hover:border-secondary-shade/30 dark:border-white/10 dark:bg-white/5 dark:text-white/40 dark:hover:border-white/20 justify-self-center"
                 >
                     <i class="fa-solid fa-magnifying-glass text-[11px]"></i>
                     <span class="flex-1">Rechercher…</span>

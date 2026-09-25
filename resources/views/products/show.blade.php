@@ -181,7 +181,9 @@
             {{-- L'équipe n'a pas de panier côté boutique (voir header.blade.php, icône panier
                  remplacée par le raccourci back-office) — le bouton reste visible et cliquable
                  pour elle (cohérence visuelle), mais l'ajout au panier ne se déclenche pas. --}}
-            @php($isStaffBrowsing = auth()->check() && auth()->user()->isStaffMember())
+            @php
+                $isStaffBrowsing = auth()->check() && auth()->user()->isStaffMember();
+            @endphp
             <form action="{{ route('cart.add') }}" method="POST" @submit.prevent="{{ $isStaffBrowsing ? '' : '$store.cart.add($el)' }}" class="mt-10 space-y-8">
                 @csrf
                 <input type="hidden" name="product_id" value="{{ $product->id }}">
