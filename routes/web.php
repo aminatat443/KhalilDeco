@@ -106,6 +106,7 @@ Route::middleware('auth')->prefix('favoris')->name('favorites.')->group(function
 Route::get('/commande', [CheckoutController::class, 'index'])->name('checkout.index');
 Route::post('/commande', [CheckoutController::class, 'store'])->name('checkout.store');
 Route::get('/commande/{order}/confirmation', [CheckoutController::class, 'confirmation'])->name('checkout.confirmation');
+Route::get('/commande/{order}/statut', [CheckoutController::class, 'status'])->name('checkout.status');
 
 Route::get('/payment/retour/{order?}', [PayTechController::class, 'success'])->name('paytech.success');
 Route::get('/payment/annulation/{order?}', [PayTechController::class, 'cancel'])->name('paytech.cancel');
@@ -174,6 +175,7 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'staff'])->group(fun
     Route::get('orders/clients', [AdminOrderController::class, 'searchClients'])->name('orders.clients.search');
     Route::post('orders', [AdminOrderController::class, 'store'])->name('orders.store');
     Route::get('orders/{order}', [AdminOrderController::class, 'show'])->name('orders.show');
+    Route::get('orders/{order}/modal', [AdminOrderController::class, 'modal'])->name('orders.modal');
     Route::post('orders/{order}/confirmer', [AdminOrderController::class, 'confirm'])->name('orders.confirm');
     Route::post('orders/{order}/annuler', [AdminOrderController::class, 'cancel'])->name('orders.cancel');
     Route::post('orders/{order}/statut', [AdminOrderController::class, 'updateStatus'])->name('orders.status');

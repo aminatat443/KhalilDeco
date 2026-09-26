@@ -518,6 +518,9 @@
     {{-- Palette de commande — recherche globale (Ctrl+K / Cmd+K), voir resources/views/components/command-palette.blade.php --}}
     <x-command-palette />
 
+    {{-- Modale unique de détail de commande, ouverte depuis une notification (cloche) --}}
+    <x-order-details-modal />
+
     @stack('scripts')
 
 </body>

@@ -6,10 +6,17 @@ use App\Mail\OrderConfirmationMail;
 use App\Models\Coupon;
 use App\Models\Delivery;
 use App\Models\Order;
+use App\Models\Payment;
+use App\Models\PaymentEvent;
 use App\Models\Product;
 use App\Models\ProductVariant;
 use App\Models\User;
 use App\Notifications\NewOrderNotification;
+use App\Notifications\PaymentCancelledNotification;
+use App\Notifications\PaymentFailedNotification;
+use App\Notifications\PaymentPendingNotification;
+use App\Notifications\PaymentReceivedNotification;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Notification;
@@ -48,8 +55,11 @@ class OrderService
         $deliveryFee = $deliveryZone->fee;
 
         return DB::transaction(function () use ($items, $customer, $delivery, $paymentMethod, $deliveryZone, $deliveryFee, $coupon, $subtotal, $discount) {
+            [$nextId, $orderNumber] = $this->reserveOrderNumber();
+
             $order = Order::create([
-                'order_number' => $this->generateOrderNumber(),
+                'id' => $nextId,
+                'order_number' => $orderNumber,
                 'user_id' => $customer['user_id'] ?? null,
                 'address_id' => $delivery['address_id'] ?? null,
                 'coupon_id' => $coupon?->id,
@@ -76,6 +86,8 @@ class OrderService
                 // reste "recue" dès la création comme avant.
                 'status' => $paymentMethod === 'cod' ? 'recue' : 'en_attente_paiement',
             ]);
+
+            PaymentEvent::record($order, 'order_created');
 
             foreach ($items as $item) {
                 $order->items()->create([
@@ -137,8 +149,11 @@ class OrderService
                 $subtotal += $unitPrice * $quantity;
             }
 
+            [$nextId, $orderNumber] = $this->reserveOrderNumber();
+
             $order = Order::create([
-                'order_number' => $this->generateOrderNumber(),
+                'id' => $nextId,
+                'order_number' => $orderNumber,
                 'user_id' => $customer['user_id'] ?? null,
                 'customer_name' => $customer['name'],
                 'customer_phone' => $customer['phone'],
@@ -207,7 +222,9 @@ class OrderService
                     }
                 }
 
+                $oldStatus = $order->status;
                 $order->update(['status' => 'confirmee']);
+                PaymentEvent::record($order, 'order_confirmed', ['old_status' => $oldStatus]);
             });
 
             return true;
@@ -243,10 +260,10 @@ class OrderService
     }
 
     /**
-     * Email de confirmation au client + notification à l'équipe — appelé une seule fois par
-     * commande réellement engagée : immédiatement pour le paiement à la livraison, seulement
-     * après confirmation du paiement (IPN PayTech) pour un paiement en ligne, pour ne jamais
-     * notifier l'équipe d'une commande jamais payée.
+     * Email de confirmation au client + notification à l'équipe — paiement à la livraison
+     * uniquement : la commande est déjà actionnable dès sa création, pas d'étape d'attente.
+     * Pour un paiement en ligne, voir notifyPendingPayment() (à la création) puis
+     * notifyPaymentReceived() (après confirmation réelle du paiement) — jamais celle-ci.
      */
     public function notifyPlaced(Order $order): void
     {
@@ -257,6 +274,54 @@ class OrderService
         }
 
         Notification::send(User::staff()->get(), new NewOrderNotification($order));
+    }
+
+    /**
+     * Commande en ligne tout juste créée, paiement pas encore tenté/confirmé — l'équipe doit
+     * savoir qu'une commande attend un paiement sans pour autant la traiter comme actionnable.
+     * Pas d'email client ici (il recevra la confirmation réelle après paiement, voir
+     * notifyPaymentReceived()) pour éviter deux emails à quelques minutes d'écart.
+     */
+    public function notifyPendingPayment(Order $order): void
+    {
+        Notification::send($this->staffWithPermission('orders.view'), new PaymentPendingNotification($order));
+    }
+
+    /**
+     * Paiement confirmé côté serveur (IPN vérifié) : email de confirmation au client (jamais
+     * envoyé avant, voir createFromCart) + notification à l'équipe comptable/caisse. Remplace
+     * l'ancien appel à notifyPlaced() dans les contrôleurs IPN.
+     */
+    public function notifyPaymentReceived(Order $order, Payment $payment): void
+    {
+        try {
+            Mail::to($order->customer_email)->send(new OrderConfirmationMail($order));
+        } catch (Throwable $e) {
+            report($e);
+        }
+
+        Notification::send($this->staffWithPermission('payments.view'), new PaymentReceivedNotification($order, $payment));
+    }
+
+    public function notifyPaymentFailed(Order $order): void
+    {
+        Notification::send($this->staffWithPermission('payments.view'), new PaymentFailedNotification($order));
+    }
+
+    public function notifyPaymentCancelled(Order $order): void
+    {
+        Notification::send($this->staffWithPermission('payments.view'), new PaymentCancelledNotification($order));
+    }
+
+    /**
+     * Ciblage par permission plutôt que "tout le staff" (section 6/28 du cahier des charges) —
+     * le Super Admin reçoit toujours tout, hasPermission() le court-circuite déjà à true.
+     *
+     * @return Collection<int, User>
+     */
+    private function staffWithPermission(string $permission): Collection
+    {
+        return User::staff()->get()->filter(fn (User $user) => $user->hasPermission($permission))->values();
     }
 
     /**
@@ -277,9 +342,21 @@ class OrderService
             ->update(['user_id' => $user->id]);
     }
 
-    private function generateOrderNumber(): string
+    /**
+     * `Order::max('id') + 1` se désynchronisait dès qu'une commande était supprimée (nettoyage
+     * de données de test, notamment) : le prochain id réellement attribué par la séquence sautait
+     * la valeur manquante alors que ce calcul, lui, continuait de la prédire — deux commandes
+     * pouvaient alors recevoir le même order_number, et donc la même référence PayTech
+     * (ref_command), que PayTech rejette comme déjà utilisée. `nextval()` sur la séquence réelle
+     * de la table ne réutilise jamais une valeur, quelles que soient les suppressions.
+     *
+     * @return array{0: int, 1: string}
+     */
+    private function reserveOrderNumber(): array
     {
-        return 'KH-'.str_pad((string) (Order::max('id') + 1), 6, '0', STR_PAD_LEFT);
+        $nextId = (int) DB::selectOne("SELECT nextval(pg_get_serial_sequence('orders', 'id')) AS id")->id;
+
+        return [$nextId, 'KH-'.str_pad((string) $nextId, 6, '0', STR_PAD_LEFT)];
     }
 
     private function variantLabel(?ProductVariant $variant): ?string

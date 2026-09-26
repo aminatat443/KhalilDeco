@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Order;
+use App\Models\PaymentEvent;
 
 /**
  * Point d'entrée unique pour démarrer une tentative de paiement en ligne, quel que soit le
@@ -28,10 +29,19 @@ class PaymentDispatcher
      */
     public function initiate(Order $order): array
     {
-        return match ($order->payment_method) {
+        $result = match ($order->payment_method) {
             'wave', 'orange_money', 'carte' => $this->payTech->createPayment($order),
             'djamo', 'free_money' => $this->payDunya->createPayment($order),
             default => ['success' => false, 'redirect_url' => null, 'message' => 'Moyen de paiement non pris en charge.', 'payment' => null],
         };
+
+        if ($result['success']) {
+            PaymentEvent::record($order, 'payment_initiated', [
+                'payment_id' => $result['payment']?->id,
+                'reference' => $result['payment']?->transaction_id,
+            ]);
+        }
+
+        return $result;
     }
 }

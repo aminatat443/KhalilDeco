@@ -259,6 +259,22 @@
                 @endif
             @endcan
         </div>
+
+        {{-- Historique — journal des transitions commande/paiement (section 26 du cahier des
+             charges commande/paiement), alimenté par payment_events. --}}
+        @if($order->paymentEvents->isNotEmpty())
+            <div class="border border-secondary-shade/10 bg-white p-6 dark:border-white/10 dark:bg-white/5">
+                <h2 class="text-xs font-semibold uppercase tracking-[0.15em] text-secondary-shade dark:text-white/70">Historique</h2>
+                <ul class="mt-3 space-y-2 text-xs text-grey dark:text-white/50">
+                    @foreach($order->paymentEvents as $event)
+                        <li class="flex justify-between gap-3">
+                            <span>{{ $event->label() }}</span>
+                            <span>{{ $event->created_at->format('d/m/Y H:i') }}</span>
+                        </li>
+                    @endforeach
+                </ul>
+            </div>
+        @endif
     </div>
 
 </div>

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Order;
 use App\Models\Payment;
+use App\Models\PaymentEvent;
 use App\Services\OrderService;
 use App\Services\PayDunyaService;
 use Illuminate\Http\JsonResponse;
@@ -64,6 +65,9 @@ class PayDunyaController extends Controller
             ->first()
             ?->update(['status' => 'cancelled']);
 
+        PaymentEvent::record($order, 'payment_cancelled');
+        $this->orders->notifyPaymentCancelled($order);
+
         return redirect()->route('checkout.confirmation', $order)
             ->withErrors(['payment_method' => 'Paiement annulé. Vous pouvez réessayer ci-dessous.']);
     }
@@ -119,6 +123,14 @@ class PayDunyaController extends Controller
         if ($status['status'] !== 'completed') {
             if (in_array($status['status'], ['cancelled', 'declined', 'failed'], true)) {
                 $payment->update(['status' => 'cancelled', 'raw_response' => json_encode($status['raw'])]);
+
+                if ($status['status'] === 'cancelled') {
+                    PaymentEvent::record($payment->order, 'payment_cancelled', ['payment_id' => $payment->id]);
+                    $this->orders->notifyPaymentCancelled($payment->order);
+                } else {
+                    PaymentEvent::record($payment->order, 'payment_failed', ['payment_id' => $payment->id]);
+                    $this->orders->notifyPaymentFailed($payment->order);
+                }
             }
 
             return false;
@@ -152,10 +164,12 @@ class PayDunyaController extends Controller
                 'paid_at' => now(),
             ]);
 
+            PaymentEvent::record($order, 'payment_success', ['payment_id' => $locked->id, 'reference' => $locked->transaction_id]);
+
             if ($order->payment_status !== 'paid') {
                 $order->update(['payment_status' => 'paid']);
                 $this->orders->confirm($order);
-                $this->orders->notifyPlaced($order);
+                $this->orders->notifyPaymentReceived($order, $locked);
             }
         });
 

@@ -31,6 +31,7 @@
         'green' => 'bg-green-50 text-green-700 dark:bg-green-500/15 dark:text-green-400',
         'red' => 'bg-red-50 text-red-600 dark:bg-red-500/15 dark:text-red-400',
     ];
+    $paymentStatusLabels = ['pending' => 'Paiement en attente', 'paid' => 'Payée', 'failed' => 'Paiement échoué', 'refunded' => 'Remboursée'];
 @endphp
 
 <div class="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-3 lg:grid-cols-4">
@@ -64,7 +65,6 @@
     <input type="hidden" name="month" value="{{ request('month') }}">
     <input type="hidden" name="year" value="{{ request('year') }}">
     <input type="hidden" name="payment_method" value="{{ request('payment_method') }}">
-    <input type="hidden" name="payment_status" value="{{ request('payment_status') }}">
     <input type="hidden" name="from" value="{{ request('from') }}">
     <input type="hidden" name="to" value="{{ request('to') }}">
     <input type="hidden" name="flag" value="{{ request('flag') }}">
@@ -73,6 +73,12 @@
         <option value="">Tous les statuts</option>
         @foreach($statusLabels as $value => $label)
             <option value="{{ $value }}" @selected(request('status') === $value)>{{ $label }}</option>
+        @endforeach
+    </select>
+    <select name="payment_status" @change="$el.form.requestSubmit()" class="border border-secondary-shade/15 bg-white px-3.5 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/15 dark:border-white/10 dark:bg-white/5 dark:text-white">
+        <option value="">Tous les paiements</option>
+        @foreach($paymentStatusLabels as $value => $label)
+            <option value="{{ $value }}" @selected(request('payment_status') === $value)>{{ $label }}</option>
         @endforeach
     </select>
     @if(request()->filled('date'))
@@ -112,7 +118,6 @@
         </span>
     @endif
     @if(request()->filled('payment_status'))
-        @php($paymentStatusLabels = ['pending' => 'Paiement en attente', 'paid' => 'Payée', 'failed' => 'Paiement échoué', 'refunded' => 'Remboursée'])
         <span class="inline-flex items-center gap-2 border border-primary/40 bg-primary-tint px-3 py-2 text-xs font-medium text-primary-shade dark:bg-primary/10 dark:text-primary">
             <i class="fa-solid fa-money-check-dollar"></i>
             {{ $paymentStatusLabels[request('payment_status')] ?? request('payment_status') }}

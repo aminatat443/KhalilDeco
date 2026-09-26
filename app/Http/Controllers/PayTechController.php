@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Order;
 use App\Models\Payment;
+use App\Models\PaymentEvent;
 use App\Services\OrderService;
 use App\Services\PayTechService;
 use Illuminate\Http\JsonResponse;
@@ -52,6 +53,9 @@ class PayTechController extends Controller
             ->first()
             ?->update(['status' => 'cancelled']);
 
+        PaymentEvent::record($order, 'payment_cancelled');
+        $this->orders->notifyPaymentCancelled($order);
+
         return redirect()->route('checkout.confirmation', $order)
             ->withErrors(['payment_method' => 'Paiement annulé. Vous pouvez réessayer ci-dessous, ou choisir le paiement à la livraison pour une prochaine commande.']);
     }
@@ -91,6 +95,8 @@ class PayTechController extends Controller
 
         if ($typeEvent === 'sale_canceled') {
             $payment->update(['status' => 'cancelled', 'raw_response' => json_encode($payload)]);
+            PaymentEvent::record($payment->order, 'payment_cancelled', ['payment_id' => $payment->id]);
+            $this->orders->notifyPaymentCancelled($payment->order);
 
             return response()->json(['message' => 'ok']);
         }
@@ -140,10 +146,12 @@ class PayTechController extends Controller
                 'paid_at' => now(),
             ]);
 
+            PaymentEvent::record($order, 'payment_success', ['payment_id' => $locked->id, 'reference' => $locked->transaction_id]);
+
             if ($order->payment_status !== 'paid') {
                 $order->update(['payment_status' => 'paid']);
                 $this->orders->confirm($order);
-                $this->orders->notifyPlaced($order);
+                $this->orders->notifyPaymentReceived($order, $locked);
             }
         });
 

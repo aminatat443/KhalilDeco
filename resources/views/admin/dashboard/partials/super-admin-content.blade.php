@@ -39,6 +39,17 @@
     <x-dashboard-kpi icon="fa-user-clock" label="Équipe en ligne" :value="$onlineStaffCount" :href="route('admin.users.index', ['status' => 'online'])" />
 </div>
 
+{{-- Distinctes du chiffre d'affaires ci-dessus (commandes confirmées uniquement) — jamais
+     mélanger "commande créée" et "paiement réellement encaissé" (section 32 du cahier des
+     charges commande/paiement). --}}
+<div class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+    <x-dashboard-kpi icon="fa-hourglass-half" label="Commandes en attente de paiement" :value="$pendingPaymentCount" :href="route('admin.orders.index', ['status' => 'en_attente_paiement'] + $rangeParams)" />
+    {{-- Pas de lien : aucune page ne filtre par événement payment_failed (source de cette
+         donnée) — même règle que les autres cartes du tableau de bord (jamais un lien vers une
+         liste qui ne reproduirait pas exactement ce compte). --}}
+    <x-dashboard-kpi icon="fa-triangle-exclamation" label="Paiements échoués" :value="$failedPaymentCount" />
+</div>
+
 <div class="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
 
     <div class="border border-secondary-shade/10 bg-white p-6 dark:border-white/10 dark:bg-[#16201f]">

@@ -249,7 +249,7 @@
         <div x-show="step === 3" x-cloak>
             <h2 class="text-xs font-semibold uppercase tracking-[0.2em] text-grey">Étape 3 — Paiement</h2>
 
-            <div class="mt-6 space-y-3">
+            <div class="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
                 @php
                     // Wave/Orange Money/Carte passent par PayTech (voir PaymentDispatcher).
                     // Djamo/Free Money (PayDunya) restent fonctionnels côté serveur mais ne sont
@@ -263,29 +263,34 @@
                 @endphp
                 @foreach($onlineMethods as $value => $method)
                     @if($method['available'])
-                        <label class="flex cursor-pointer items-center gap-3 border border-secondary-shade/15 px-5 py-4 has-[:checked]:border-secondary-shade">
-                            <input type="radio" name="payment_method" value="{{ $value }}" x-model="paymentMethod" required class="h-4 w-4 shrink-0 text-primary focus:ring-primary">
-                            <img src="{{ asset('images/payment-logos/'.$method['logo']) }}" alt="{{ $method['label'] }}" class="h-6 w-6 shrink-0 object-contain">
-                            <span class="text-sm text-secondary-shade">{{ $method['label'] }}</span>
+                        <label class="group relative flex cursor-pointer flex-col items-center gap-2 border border-secondary-shade/15 bg-white px-4 py-6 text-center transition hover:border-secondary-shade/30 hover:bg-grey-tint/30 has-[:checked]:border-primary has-[:checked]:bg-primary-tint/40 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-primary/40">
+                            <input type="radio" name="payment_method" value="{{ $value }}" x-model="paymentMethod" required class="peer sr-only">
+                            <span class="absolute right-3 top-3 flex h-5 w-5 items-center justify-center border border-secondary-shade/20 text-transparent transition peer-checked:border-primary peer-checked:bg-primary peer-checked:text-white">
+                                <i class="fa-solid fa-check text-[9px]"></i>
+                            </span>
+                            <img src="{{ asset('images/payment-logos/'.$method['logo']) }}" alt="{{ $method['label'] }}" class="h-11 w-11 shrink-0 object-contain">
+                            <span class="mt-1 text-sm font-medium text-secondary-shade peer-checked:text-primary-shade">{{ $method['label'] }}</span>
+                            <span class="text-[11px] text-grey">Paiement en ligne</span>
                         </label>
                     @else
-                        <label class="flex cursor-not-allowed items-center justify-between border border-secondary-shade/10 px-5 py-4 opacity-40">
-                            <span class="flex items-center gap-3">
-                                <input type="radio" disabled class="h-4 w-4 shrink-0">
-                                <img src="{{ asset('images/payment-logos/'.$method['logo']) }}" alt="{{ $method['label'] }}" class="h-6 w-6 shrink-0 object-contain grayscale">
-                                <span class="text-sm text-secondary-shade">{{ $method['label'] }}</span>
-                            </span>
-                            <span class="text-xs uppercase tracking-[0.1em] text-grey">Bientôt disponible</span>
-                        </label>
+                        <div class="relative flex cursor-not-allowed flex-col items-center gap-2 border border-secondary-shade/10 bg-white px-4 py-6 text-center opacity-40">
+                            <img src="{{ asset('images/payment-logos/'.$method['logo']) }}" alt="{{ $method['label'] }}" class="h-11 w-11 shrink-0 object-contain grayscale">
+                            <span class="mt-1 text-sm font-medium text-secondary-shade">{{ $method['label'] }}</span>
+                            <span class="text-[10px] uppercase tracking-[0.08em] text-grey">Bientôt disponible</span>
+                        </div>
                     @endif
                 @endforeach
 
-                <label class="flex cursor-pointer items-center gap-3 border border-secondary-shade/15 px-5 py-4 has-[:checked]:border-secondary-shade">
-                    <input type="radio" name="payment_method" value="cod" x-model="paymentMethod" required class="h-4 w-4 shrink-0 text-primary focus:ring-primary">
-                    <span class="flex h-6 w-6 shrink-0 items-center justify-center bg-secondary-shade text-white">
-                        <i class="fa-solid fa-truck text-[11px]"></i>
+                <label class="group relative flex cursor-pointer flex-col items-center gap-2 border border-secondary-shade/15 bg-white px-4 py-6 text-center transition hover:border-secondary-shade/30 hover:bg-grey-tint/30 has-[:checked]:border-primary has-[:checked]:bg-primary-tint/40 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-primary/40">
+                    <input type="radio" name="payment_method" value="cod" x-model="paymentMethod" required class="peer sr-only">
+                    <span class="absolute right-3 top-3 flex h-5 w-5 items-center justify-center border border-secondary-shade/20 text-transparent transition peer-checked:border-primary peer-checked:bg-primary peer-checked:text-white">
+                        <i class="fa-solid fa-check text-[9px]"></i>
                     </span>
-                    <span class="text-sm text-secondary-shade">Paiement à la livraison</span>
+                    <span class="flex h-11 w-11 shrink-0 items-center justify-center bg-secondary-shade text-white">
+                        <i class="fa-solid fa-truck text-base"></i>
+                    </span>
+                    <span class="mt-1 text-sm font-medium text-secondary-shade peer-checked:text-primary-shade">Paiement à la livraison</span>
+                    <span class="text-[11px] text-grey">Réglé à la réception</span>
                 </label>
             </div>
 

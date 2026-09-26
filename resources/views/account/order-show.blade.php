@@ -15,7 +15,45 @@
     $currentIndex = array_search($order->status, array_keys($steps));
 @endphp
 
-<div class="mx-auto max-w-5xl px-6 py-16 sm:px-10">
+<div
+    x-data="{
+        orderId: {{ $order->id }},
+        isAwaiting: @js($order->status === 'en_attente_paiement'),
+        showBackAlert: false,
+        poll: null,
+        async checkStatus() {
+            try {
+                const res = await fetch(`/commande/${this.orderId}/statut`, { headers: { Accept: 'application/json' } });
+                if (! res.ok) return false;
+                const data = await res.json();
+                if (data.status !== 'en_attente_paiement') {
+                    location.reload();
+                    return true;
+                }
+            } catch (e) {}
+            return false;
+        },
+    }"
+    x-init="
+        if (isAwaiting) { poll = setInterval(() => checkStatus(), 5000); }
+        window.addEventListener('pageshow', (e) => { if (e.persisted && isAwaiting) { checkStatus().then((confirmed) => { if (! confirmed) showBackAlert = true; }); } });
+    "
+    class="mx-auto max-w-5xl px-6 py-16 sm:px-10"
+>
+    {{-- Alerte au retour navigateur — voir checkout/confirmation.blade.php pour le même mécanisme --}}
+    <div x-show="showBackAlert" x-cloak class="fixed inset-0 z-[95] flex items-center justify-center bg-secondary-shade/60 p-4" @click.self="showBackAlert = false">
+        <div class="w-full max-w-sm bg-white p-6 text-center shadow-xl">
+            <i class="fa-solid fa-triangle-exclamation text-2xl text-tertiary-shade"></i>
+            <p class="mt-4 text-sm text-secondary-shade">Votre commande n'est pas encore confirmée.<br>Veuillez effectuer le paiement pour confirmer votre commande.</p>
+            <div class="mt-5 flex flex-col gap-2">
+                <form action="{{ route('payment.retry', $order) }}" method="POST">
+                    @csrf
+                    <button type="submit" class="w-full bg-primary px-6 py-3 text-xs font-semibold uppercase tracking-[0.15em] text-white transition hover:bg-primary-shade">Payer maintenant</button>
+                </form>
+                <button type="button" @click="showBackAlert = false" class="w-full border border-secondary-shade/15 px-6 py-3 text-xs font-semibold uppercase tracking-[0.15em] text-secondary-shade transition hover:border-secondary-shade/30">Retourner à la commande</button>
+            </div>
+        </div>
+    </div>
 
     <a href="{{ route('account.orders') }}" class="text-xs text-grey hover:text-primary"><i class="fa-solid fa-arrow-left mr-1"></i>Mes commandes</a>
 
@@ -36,7 +74,12 @@
     {{-- Suivi de commande (section 38 du cahier des charges) --}}
     @if($order->status === 'annulee')
         <div class="mt-10 border border-red-200 bg-red-50 px-6 py-5 text-sm text-red-700">
-            <i class="fa-solid fa-circle-xmark mr-2"></i>Cette commande a été annulée.
+            <i class="fa-solid fa-circle-xmark mr-2"></i>
+            @if(str_contains((string) $order->admin_notes, 'Délai de paiement'))
+                Le délai de paiement de cette commande est expiré.
+            @else
+                Cette commande a été annulée.
+            @endif
         </div>
     @elseif($order->status === 'en_attente_paiement')
         <div class="mt-10 border border-tertiary-shade/40 bg-tertiary-shade/5 px-6 py-6 text-center text-sm text-secondary-shade">

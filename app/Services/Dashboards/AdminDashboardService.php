@@ -7,6 +7,7 @@ use App\Models\Cart;
 use App\Models\CouponUsage;
 use App\Models\Order;
 use App\Models\Payment;
+use App\Models\PaymentEvent;
 use App\Models\Product;
 use App\Models\ProductReturn;
 use App\Models\ProductVariant;
@@ -38,6 +39,16 @@ class AdminDashboardService
 
         $paidCount = Order::where('payment_status', 'paid')->whereBetween('created_at', [$period->start, $period->end])->count();
         $unpaidCount = Order::where('payment_status', '!=', 'paid')->where('status', '!=', 'annulee')->whereBetween('created_at', [$period->start, $period->end])->count();
+
+        // Distincts du chiffre d'affaires ($revenue, commandes confirmées uniquement) — jamais
+        // mélanger "commande créée" et "paiement réellement encaissé" (section 32 du cahier des
+        // charges commande/paiement).
+        $pendingPaymentCount = Order::where('status', 'en_attente_paiement')->whereBetween('created_at', [$period->start, $period->end])->count();
+
+        // "Échoué" n'existe pas comme statut stocké sur la commande (orders.payment_status ne
+        // vaut jamais "failed" en pratique, seul payment_events trace ce moment précisément) —
+        // compté par événement plutôt que par un statut qui ne reflèterait rien de réel.
+        $failedPaymentCount = PaymentEvent::where('event', 'payment_failed')->whereBetween('created_at', [$period->start, $period->end])->count();
 
         $newClients = User::where('role', 'client')->whereBetween('created_at', [$period->start, $period->end])->count();
         $prevNewClients = User::where('role', 'client')->whereBetween('created_at', [$period->previousStart, $period->previousEnd])->count();
@@ -96,6 +107,8 @@ class AdminDashboardService
             'confirmationRate' => $ordersCount > 0 ? round(($confirmedCount / $ordersCount) * 100) : 0,
             'paidCount' => $paidCount,
             'unpaidCount' => $unpaidCount,
+            'pendingPaymentCount' => $pendingPaymentCount,
+            'failedPaymentCount' => $failedPaymentCount,
             'newClients' => $newClients,
             'newClientsTrend' => DashboardPeriod::trend($newClients, $prevNewClients),
             'lowStockVariants' => $lowStockVariants,

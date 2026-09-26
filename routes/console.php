@@ -21,3 +21,8 @@ Schedule::command('app:send-promotion-favorite-emails')->hourly();
 // Campagnes programmées (section 9 « Nouvelle campagne ») — vérifiée chaque minute pour respecter
 // l'heure choisie par l'administrateur, sous la même contrainte d'ordonnanceur que ci-dessus.
 Schedule::command('app:send-scheduled-campaigns')->everyMinute();
+
+// Commandes en ligne restées en_attente_paiement au-delà du délai configuré
+// (config('orders.payment_timeout_minutes')) — vérifiée toutes les 5 minutes, fréquence
+// suffisante vu que le délai lui-même se compte en dizaines de minutes/heures.
+Schedule::command('app:expire-stale-pending-orders')->everyFiveMinutes();

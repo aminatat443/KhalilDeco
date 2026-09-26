@@ -131,6 +131,11 @@ class Order extends Model
         return $this->hasMany(CouponUsage::class);
     }
 
+    public function paymentEvents(): HasMany
+    {
+        return $this->hasMany(PaymentEvent::class)->latest();
+    }
+
     /**
      * Commandes "en retard d'expédition" — engagées dans le pipeline logistique (confirmée,
      * préparation ou expédiée) mais vieilles de plus de 5 jours. Source unique de cette

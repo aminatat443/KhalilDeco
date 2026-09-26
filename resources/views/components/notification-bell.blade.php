@@ -21,7 +21,18 @@
                     method: 'POST',
                     headers: { Accept: 'application/json', 'X-XSRF-TOKEN': window.csrfToken ? window.csrfToken() : '' },
                 });
+                item.read = true;
             }
+
+            // Commande/paiement : ouvre la modale unique plutôt que de naviguer (section 8 du
+            // cahier des charges) — les autres types de notification (retours...) gardent la
+            // navigation classique.
+            if (item.order_id) {
+                this.open = false;
+                window.dispatchEvent(new CustomEvent('open-order-modal', { detail: { orderId: item.order_id } }));
+                return;
+            }
+
             window.location = item.url;
         },
         async markAllRead() {
@@ -32,7 +43,7 @@
             await this.load();
         },
     }"
-    x-init="load(); setInterval(() => load(), 15000)"
+    x-init="load(); setInterval(() => load(), 5000)"
     class="relative"
     @mouseenter="open = true; load()"
     @mouseleave="open = false"

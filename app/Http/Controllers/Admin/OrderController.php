@@ -74,9 +74,32 @@ class OrderController extends Controller
     {
         $this->authorize('view', $order);
 
-        $order->load('items', 'user', 'coupon', 'payments');
+        $order->load('items', 'user', 'coupon', 'payments', 'paymentEvents');
 
         return view('admin.orders.show', ['order' => $order]);
+    }
+
+    /**
+     * Contenu de la modale de détail unique (OrderDetailsModal) — ouverte depuis une notification
+     * ou pour un rafraîchissement en direct pendant qu'elle reste affichée (section 8/12 du cahier
+     * des charges). La permission est vérifiée avant tout rendu ; un refus renvoie un message
+     * clair en JSON plutôt que la page 403 générique.
+     */
+    public function modal(Order $order): JsonResponse
+    {
+        try {
+            $this->authorize('view', $order);
+        } catch (\Illuminate\Auth\Access\AuthorizationException) {
+            return response()->json([
+                'message' => 'Accès refusé : vous n\'avez pas les permissions nécessaires pour consulter cette commande.',
+            ], 403);
+        }
+
+        $order->load('items', 'user', 'coupon', 'payments', 'paymentEvents');
+
+        return response()->json([
+            'html' => view('admin.orders.partials.modal-content', ['order' => $order])->render(),
+        ]);
     }
 
     /**
@@ -268,7 +291,7 @@ class OrderController extends Controller
     private function statusResponse(Request $request, Order $order, string $message): RedirectResponse|JsonResponse
     {
         if ($request->wantsJson()) {
-            $order->load('items', 'user', 'coupon', 'payments');
+            $order->load('items', 'user', 'coupon', 'payments', 'paymentEvents');
 
             return response()->json([
                 'message' => $message,

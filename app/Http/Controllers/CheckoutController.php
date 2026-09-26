@@ -165,13 +165,19 @@ class CheckoutController extends Controller
         $request->session()->put('last_order_id', $order->id);
 
         // Paiement à la livraison : la commande est déjà engagée, on notifie tout de suite.
-        // Paiement en ligne (Wave/Orange Money/Carte) : on ne notifie qu'après confirmation
-        // réelle du paiement (voir PayTechController::ipn) — jamais pour une commande jamais payée.
+        // Paiement en ligne (Wave/Orange Money/Carte/Djamo/Free Money) : notification distincte
+        // "paiement en attente" ci-dessous, puis "paiement reçu" seulement après confirmation
+        // réelle du paiement (voir PayTechController::ipn / PayDunyaController::callback) — le
+        // client, lui, n'est confirmé par email que dans ce second cas.
         if ($data['payment_method'] === 'cod') {
             $this->orders->notifyPlaced($order);
 
             return redirect()->route('checkout.confirmation', $order);
         }
+
+        // Commande en ligne créée mais pas encore payée : l'équipe doit le savoir tout de suite
+        // (section 5 du cahier des charges), avant même que le client atteigne la passerelle.
+        $this->orders->notifyPendingPayment($order);
 
         $payment = $this->payments->initiate($order);
 
@@ -200,6 +206,26 @@ class CheckoutController extends Controller
         return view('checkout.confirmation', [
             'order' => $order,
             'latestPayment' => $order->payments->sortByDesc('created_at')->first(),
+        ]);
+    }
+
+    /**
+     * Lecture légère du statut réel d'une commande — utilisée par le polling client (page de
+     * confirmation, espace client) pour détecter une confirmation de paiement sans recharger la
+     * page à l'aveugle, et par l'alerte au retour navigateur (section 20-22 du cahier des
+     * charges). Même règle d'accès que confirmation() ci-dessus.
+     */
+    public function status(Request $request, Order $order): \Illuminate\Http\JsonResponse
+    {
+        abort_unless(
+            ($order->user_id && $order->user_id === auth()->id())
+                || $request->session()->get('last_order_id') === $order->id,
+            403
+        );
+
+        return response()->json([
+            'status' => $order->status,
+            'payment_status' => $order->payment_status,
         ]);
     }
 
