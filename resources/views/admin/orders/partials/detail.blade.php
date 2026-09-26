@@ -246,7 +246,7 @@
                         <div>
                             <label class="mb-1 block text-[11px] font-semibold uppercase tracking-[0.08em] text-grey dark:text-white/40">Moyen</label>
                             <select name="provider" class="w-full border border-secondary-shade/15 bg-white px-3 py-2 text-sm outline-none focus:border-primary dark:border-white/10 dark:bg-white/5 dark:text-white">
-                                @foreach(\App\Models\Order::PAYMENT_METHOD_LABELS as $value => $label)
+                                @foreach(\Illuminate\Support\Arr::except(\App\Models\Order::PAYMENT_METHOD_LABELS, ['djamo', 'free_money']) as $value => $label)
                                     <option value="{{ $value }}" @selected($order->payment_method === $value)>{{ $label }}</option>
                                 @endforeach
                             </select>

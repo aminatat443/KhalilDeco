@@ -250,11 +250,11 @@
                 },
             }"
         >
-            <div x-ref="grid" class="mt-5 grid grid-cols-4 gap-4">
+            <div x-ref="grid" class="mt-5 grid grid-cols-5 gap-3 sm:grid-cols-6 lg:grid-cols-8">
                 @include('admin.products.partials.image-grid')
             </div>
             <p x-show="uploadError" x-cloak x-text="uploadError" class="mt-2 text-xs text-red-600 dark:text-red-400"></p>
-            <p class="mt-2 text-xs text-grey dark:text-white/40">Glissez une vignette pour changer l'ordre — la première est la photo principale. Déposez de nouvelles photos sur la tuile "+", l'envoi se lance automatiquement.</p>
+            <p class="mt-2 text-xs text-grey dark:text-white/40">Glissez une vignette pour changer l'ordre — la première est la photo principale. Cliquez sur la tuile "+" pour choisir plusieurs photos à la fois (ou déposez-les dessus), l'envoi se lance automatiquement.</p>
         </div>
     </div>
 

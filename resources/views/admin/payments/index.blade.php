@@ -33,7 +33,7 @@
     </select>
     <select name="provider" @change="$el.form.requestSubmit()" class="border border-secondary-shade/15 bg-white px-3 py-2 text-xs font-medium uppercase tracking-[0.06em] text-secondary-shade outline-none focus:border-primary dark:border-white/10 dark:bg-white/5 dark:text-white">
         <option value="">Tous les moyens</option>
-        @foreach(\App\Models\Order::PAYMENT_METHOD_LABELS as $value => $label)
+        @foreach(\Illuminate\Support\Arr::except(\App\Models\Order::PAYMENT_METHOD_LABELS, ['djamo', 'free_money']) as $value => $label)
             <option value="{{ $value }}" @selected(request('provider') === $value)>{{ $label }}</option>
         @endforeach
     </select>
