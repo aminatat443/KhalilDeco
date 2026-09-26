@@ -146,9 +146,9 @@
             @php
                 $paytechAvailable = (bool) config('services.paytech.key');
                 $retryMethods = [
-                    'wave' => ['label' => 'Wave', 'available' => $paytechAvailable, 'logo' => 'wave.svg'],
-                    'orange_money' => ['label' => 'Orange Money', 'available' => $paytechAvailable, 'logo' => 'orange-money.svg'],
-                    'carte' => ['label' => 'Carte bancaire', 'available' => $paytechAvailable, 'logo' => 'carte.svg'],
+                    'wave' => ['label' => 'Wave', 'available' => $paytechAvailable, 'logo' => 'logo_wave.png'],
+                    'orange_money' => ['label' => 'Orange Money', 'available' => $paytechAvailable, 'logo' => 'logo_orange_money.png'],
+                    'carte' => ['label' => 'Carte bancaire', 'available' => $paytechAvailable, 'logo' => 'logo_carte.jpeg'],
                     'cod' => ['label' => 'Paiement à la livraison', 'available' => true, 'logo' => null],
                 ];
             @endphp
@@ -171,18 +171,16 @@
                     <div class="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
                         @foreach($retryMethods as $value => $method)
                             @continue(! $method['available'])
-                            <label class="group relative flex cursor-pointer flex-col items-center gap-2 border border-secondary-shade/15 bg-white px-4 py-6 text-center transition hover:border-secondary-shade/30 hover:bg-grey-tint/30 has-[:checked]:border-primary has-[:checked]:bg-primary-tint/40 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-primary/40">
+                            <label class="group relative flex cursor-pointer flex-col items-center justify-center gap-1 border border-secondary-shade/15 bg-white px-3 py-4 text-center transition hover:border-secondary-shade/30 hover:bg-grey-tint/30 has-[:checked]:border-primary has-[:checked]:bg-primary-tint/40 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-primary/40">
                                 <input type="radio" name="payment_method" value="{{ $value }}" x-model="method" required class="peer sr-only" @checked($order->payment_method === $value)>
-                                <span class="absolute right-3 top-3 flex h-5 w-5 items-center justify-center border border-secondary-shade/20 text-transparent transition peer-checked:border-primary peer-checked:bg-primary peer-checked:text-white">
-                                    <i class="fa-solid fa-check text-[9px]"></i>
+                                <span class="absolute right-2 top-2 flex h-4 w-4 items-center justify-center border border-secondary-shade/20 text-transparent transition peer-checked:border-primary peer-checked:bg-primary peer-checked:text-white">
+                                    <i class="fa-solid fa-check text-[8px]"></i>
                                 </span>
                                 @if($method['logo'])
-                                    <img src="{{ asset('images/payment-logos/'.$method['logo']) }}" alt="{{ $method['label'] }}" class="h-11 w-11 shrink-0 object-contain">
+                                    <img src="{{ asset('images/'.$method['logo']) }}" alt="{{ $method['label'] }}" class="h-8 w-auto max-w-[100px] shrink-0 object-contain">
                                 @else
-                                    <span class="flex h-11 w-11 shrink-0 items-center justify-center bg-secondary-shade text-white"><i class="fa-solid fa-truck text-base"></i></span>
+                                    <span class="flex h-8 w-8 shrink-0 items-center justify-center bg-secondary-shade text-white" title="{{ $method['label'] }}" aria-label="{{ $method['label'] }}"><i class="fa-solid fa-truck text-base"></i></span>
                                 @endif
-                                <span class="mt-1 text-sm font-medium text-secondary-shade peer-checked:text-primary-shade">{{ $method['label'] }}</span>
-                                <span class="text-[11px] text-grey">{{ $value === 'cod' ? 'Réglé à la réception' : 'Paiement en ligne' }}</span>
                             </label>
                         @endforeach
                     </div>

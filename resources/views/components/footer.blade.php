@@ -2,7 +2,7 @@
 
     {{-- Bandeau newsletter --}}
     <div class="border-b border-secondary-shade/10">
-        <div class="mx-auto max-w-[1600px] px-6 py-20 text-center sm:px-10">
+        <div class="mx-auto max-w-[1440px] px-6 py-20 text-center sm:px-10">
             <p class="font-display text-2xl font-normal italic text-secondary-shade sm:text-3xl">Restez inspiré·e</p>
             <p class="mx-auto mt-3 max-w-md text-sm text-grey">
                 Recevez nos nouveautés, promotions et inspirations déco directement dans votre boîte mail.
@@ -57,7 +57,7 @@
     </div>
 
 
-    <div class="mx-auto grid max-w-[1600px] gap-10 px-6 py-16 sm:px-10 md:grid-cols-5">
+    <div class="mx-auto grid max-w-[1440px] gap-10 px-6 py-16 sm:px-10 md:grid-cols-5">
 
         <div>
             <img src="{{ asset('images/logo_khalil_deco_full.png') }}" alt="Khalil Déco" class="h-16 w-auto">
@@ -120,7 +120,7 @@
 
 
     <div class="border-t border-secondary-shade/10">
-        <div class="mx-auto max-w-[1600px] px-6 py-6 text-center text-xs text-grey sm:px-10">
+        <div class="mx-auto max-w-[1440px] px-6 py-6 text-center text-xs text-grey sm:px-10">
             © {{ date('Y') }} Khalil Déco. Tous droits réservés.
         </div>
     </div>

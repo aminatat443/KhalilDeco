@@ -13,7 +13,7 @@
     @endcan
 </div>
 
-<div class="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+<div class="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
     @forelse($banners as $banner)
         <a href="{{ route('admin.banners.edit', $banner) }}" class="group block overflow-hidden bg-white border border-secondary-shade/10 transition hover:shadow-md dark:bg-[#16201f] dark:border-white/10">
             <div class="aspect-video overflow-hidden bg-grey-tint dark:bg-white/10">

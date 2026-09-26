@@ -11,7 +11,7 @@
             x-cloak
             class="border-b border-secondary-shade/10 bg-primary-tint"
         >
-            <div class="mx-auto flex max-w-[1600px] flex-wrap items-center justify-between gap-3 px-6 py-3 sm:px-10">
+            <div class="mx-auto flex max-w-[1440px] flex-wrap items-center justify-between gap-3 px-6 py-3 sm:px-10">
                 <p class="text-sm text-primary-shade">
                     <i class="fa-solid fa-location-dot mr-2"></i>
                     Ajoutez votre adresse de livraison à votre profil pour commander plus vite la prochaine fois.

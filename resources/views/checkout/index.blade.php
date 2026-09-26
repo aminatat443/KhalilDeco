@@ -80,11 +80,11 @@
         <template x-for="n in 4" :key="n">
             <div class="flex items-center">
                 <span
-                    :class="step >= n ? 'bg-secondary-shade text-white' : 'bg-grey-tint text-grey'"
-                    class="flex h-7 w-7 shrink-0 items-center justify-center text-xs font-semibold"
+                    :class="[step >= n ? 'bg-primary text-white' : 'bg-grey-tint text-grey', step === n ? 'ring-2 ring-primary/20 ring-offset-2' : '']"
+                    class="flex h-7 w-7 shrink-0 items-center justify-center text-xs font-semibold transition-colors"
                     x-text="n"
                 ></span>
-                <div x-show="n < 4" :class="step > n ? 'bg-secondary-shade' : 'bg-grey-tint'" class="h-px w-10 sm:w-16"></div>
+                <div x-show="n < 4" :class="step > n ? 'bg-primary' : 'bg-grey-tint'" class="h-px w-10 transition-colors sm:w-16"></div>
             </div>
         </template>
     </div>
@@ -247,61 +247,63 @@
 
         {{-- Étape 3 — Paiement --}}
         <div x-show="step === 3" x-cloak>
-            <h2 class="text-xs font-semibold uppercase tracking-[0.2em] text-grey">Étape 3 — Paiement</h2>
+            <p class="text-xs font-semibold uppercase tracking-[0.2em] text-grey">Étape 3</p>
+            <h2 class="mt-1 font-display text-2xl font-normal italic text-secondary sm:text-3xl">Paiement</h2>
 
-            <div class="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <div class="mt-7 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
                 @php
                     // Wave/Orange Money/Carte passent par PayTech (voir PaymentDispatcher).
                     // Djamo/Free Money (PayDunya) restent fonctionnels côté serveur mais ne sont
                     // plus affichés ici — retirer ces deux lignes suffit à les faire réapparaître.
                     $paytechAvailable = (bool) config('services.paytech.key');
                     $onlineMethods = [
-                        'wave' => ['label' => 'Wave', 'available' => $paytechAvailable, 'logo' => 'wave.svg'],
-                        'orange_money' => ['label' => 'Orange Money', 'available' => $paytechAvailable, 'logo' => 'orange-money.svg'],
-                        'carte' => ['label' => 'Carte bancaire', 'available' => $paytechAvailable, 'logo' => 'carte.svg'],
+                        'wave' => ['label' => 'Wave', 'available' => $paytechAvailable, 'logo' => 'logo_wave.png'],
+                        'orange_money' => ['label' => 'Orange Money', 'available' => $paytechAvailable, 'logo' => 'logo_orange_money.png'],
+                        'carte' => ['label' => 'Carte bancaire', 'available' => $paytechAvailable, 'logo' => 'logo_carte.jpeg'],
                     ];
                 @endphp
                 @foreach($onlineMethods as $value => $method)
                     @if($method['available'])
-                        <label class="group relative flex cursor-pointer flex-col items-center gap-2 border border-secondary-shade/15 bg-white px-4 py-6 text-center transition hover:border-secondary-shade/30 hover:bg-grey-tint/30 has-[:checked]:border-primary has-[:checked]:bg-primary-tint/40 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-primary/40">
+                        <label class="group relative flex cursor-pointer flex-col items-center justify-center gap-1.5 border border-[#E5E2DA] bg-white px-4 py-5 text-center transition-all duration-200 hover:border-tertiary/60 hover:bg-grey-tint/40 has-[:checked]:border-primary has-[:checked]:bg-primary-tint has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-primary/30">
                             <input type="radio" name="payment_method" value="{{ $value }}" x-model="paymentMethod" required class="peer sr-only">
-                            <span class="absolute right-3 top-3 flex h-5 w-5 items-center justify-center border border-secondary-shade/20 text-transparent transition peer-checked:border-primary peer-checked:bg-primary peer-checked:text-white">
+                            <span class="absolute right-3 top-3 flex h-5 w-5 items-center justify-center border border-[#E5E2DA] text-transparent transition peer-checked:border-primary peer-checked:bg-primary peer-checked:text-white">
                                 <i class="fa-solid fa-check text-[9px]"></i>
                             </span>
-                            <img src="{{ asset('images/payment-logos/'.$method['logo']) }}" alt="{{ $method['label'] }}" class="h-11 w-11 shrink-0 object-contain">
-                            <span class="mt-1 text-sm font-medium text-secondary-shade peer-checked:text-primary-shade">{{ $method['label'] }}</span>
-                            <span class="text-[11px] text-grey">Paiement en ligne</span>
+                            <img src="{{ asset('images/'.$method['logo']) }}" alt="{{ $method['label'] }}" class="h-9 w-auto max-w-[110px] shrink-0 object-contain">
                         </label>
                     @else
-                        <div class="relative flex cursor-not-allowed flex-col items-center gap-2 border border-secondary-shade/10 bg-white px-4 py-6 text-center opacity-40">
-                            <img src="{{ asset('images/payment-logos/'.$method['logo']) }}" alt="{{ $method['label'] }}" class="h-11 w-11 shrink-0 object-contain grayscale">
-                            <span class="mt-1 text-sm font-medium text-secondary-shade">{{ $method['label'] }}</span>
-                            <span class="text-[10px] uppercase tracking-[0.08em] text-grey">Bientôt disponible</span>
+                        <div class="relative flex cursor-not-allowed flex-col items-center justify-center gap-1.5 border border-[#E5E2DA] bg-white px-4 py-5 text-center opacity-40">
+                            <img src="{{ asset('images/'.$method['logo']) }}" alt="{{ $method['label'] }}" class="h-9 w-auto max-w-[110px] shrink-0 object-contain grayscale">
+                            <span class="mt-1 text-[10px] uppercase tracking-[0.08em] text-grey">Bientôt disponible</span>
                         </div>
                     @endif
                 @endforeach
 
-                <label class="group relative flex cursor-pointer flex-col items-center gap-2 border border-secondary-shade/15 bg-white px-4 py-6 text-center transition hover:border-secondary-shade/30 hover:bg-grey-tint/30 has-[:checked]:border-primary has-[:checked]:bg-primary-tint/40 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-primary/40">
+                <label class="group relative flex cursor-pointer flex-col items-center justify-center gap-1.5 border border-[#E5E2DA] bg-white px-4 py-5 text-center transition-all duration-200 hover:border-tertiary/60 hover:bg-grey-tint/40 has-[:checked]:border-primary has-[:checked]:bg-primary-tint has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-primary/30">
                     <input type="radio" name="payment_method" value="cod" x-model="paymentMethod" required class="peer sr-only">
-                    <span class="absolute right-3 top-3 flex h-5 w-5 items-center justify-center border border-secondary-shade/20 text-transparent transition peer-checked:border-primary peer-checked:bg-primary peer-checked:text-white">
+                    <span class="absolute right-3 top-3 flex h-5 w-5 items-center justify-center border border-[#E5E2DA] text-transparent transition peer-checked:border-primary peer-checked:bg-primary peer-checked:text-white">
                         <i class="fa-solid fa-check text-[9px]"></i>
                     </span>
-                    <span class="flex h-11 w-11 shrink-0 items-center justify-center bg-secondary-shade text-white">
+                    <span class="flex h-9 w-9 shrink-0 items-center justify-center bg-secondary text-white" title="Paiement à la livraison" aria-label="Paiement à la livraison">
                         <i class="fa-solid fa-truck text-base"></i>
                     </span>
-                    <span class="mt-1 text-sm font-medium text-secondary-shade peer-checked:text-primary-shade">Paiement à la livraison</span>
-                    <span class="text-[11px] text-grey">Réglé à la réception</span>
                 </label>
             </div>
 
             <div class="mt-8">
-                <label class="mb-1.5 block text-xs font-semibold uppercase tracking-[0.15em] text-secondary-shade">Code promo (optionnel)</label>
-                <input type="text" name="coupon_code" value="{{ old('coupon_code') }}" class="w-full border-b border-secondary-shade/20 bg-transparent py-2 text-sm text-secondary-shade outline-none focus:border-primary">
+                <label class="mb-2 block text-xs font-semibold uppercase tracking-[0.15em] text-secondary">Code promo (optionnel)</label>
+                <div class="flex flex-col gap-2 sm:flex-row">
+                    <input type="text" name="coupon_code" value="{{ old('coupon_code') }}" placeholder="Entrez votre code promo" class="w-full border border-[#E5E2DA] bg-white px-4 py-3 text-sm text-secondary outline-none transition focus:border-primary sm:flex-1">
+                    <button type="button" class="shrink-0 border border-[#E5E2DA] px-6 py-3 text-xs font-semibold uppercase tracking-[0.15em] text-secondary transition hover:border-secondary/40">Appliquer</button>
+                </div>
             </div>
 
             <div class="mt-10 flex gap-4">
-                <button type="button" @click="prev()" class="px-8 py-4 text-xs font-semibold uppercase tracking-[0.15em] text-secondary-shade transition hover:text-primary">Retour</button>
-                <button type="button" @click="next()" class="bg-secondary-shade px-8 py-4 text-xs font-semibold uppercase tracking-[0.15em] text-white transition hover:bg-primary">Continuer</button>
+                <button type="button" @click="prev()" class="px-6 py-4 text-xs font-semibold uppercase tracking-[0.15em] text-grey transition hover:text-secondary">Retour</button>
+                <button type="button" @click="next()" class="flex flex-1 items-center justify-center gap-2 bg-primary px-8 py-4 text-xs font-semibold uppercase tracking-[0.15em] text-white transition hover:bg-primary-shade sm:flex-none">
+                    Continuer
+                    <i class="fa-solid fa-arrow-right text-[10px]"></i>
+                </button>
             </div>
         </div>
 

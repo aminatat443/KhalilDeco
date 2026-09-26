@@ -22,7 +22,7 @@
     ];
 @endphp
 
-<div class="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-3 lg:grid-cols-5">
+<div class="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
     @foreach(\App\Models\ProductReturn::STATUS_LABELS as $key => $label)
         <a
             href="{{ route('admin.returns.index', ['status' => $key]) }}"

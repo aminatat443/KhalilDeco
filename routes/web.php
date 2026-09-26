@@ -108,8 +108,13 @@ Route::post('/commande', [CheckoutController::class, 'store'])->name('checkout.s
 Route::get('/commande/{order}/confirmation', [CheckoutController::class, 'confirmation'])->name('checkout.confirmation');
 Route::get('/commande/{order}/statut', [CheckoutController::class, 'status'])->name('checkout.status');
 
-Route::get('/payment/retour/{order?}', [PayTechController::class, 'success'])->name('paytech.success');
-Route::get('/payment/annulation/{order?}', [PayTechController::class, 'cancel'])->name('paytech.cancel');
+// Page d'attente Wave/Orange Money/Carte le temps que l'IPN PayTech confirme le paiement et
+// matérialise la commande (voir CheckoutController::store, PayTechController::ipn).
+Route::get('/commande/tentative/{attempt}', [CheckoutController::class, 'attemptShow'])->name('checkout.attempt.show');
+Route::get('/commande/tentative/{attempt}/statut', [CheckoutController::class, 'attemptStatus'])->name('checkout.attempt.status');
+
+Route::get('/payment/retour/{attempt?}', [PayTechController::class, 'success'])->name('paytech.success');
+Route::get('/payment/annulation/{attempt?}', [PayTechController::class, 'cancel'])->name('paytech.cancel');
 Route::post('/payment/ipn', [PayTechController::class, 'ipn'])->name('paytech.ipn');
 
 Route::get('/payment/wave/retour/{order?}', [WaveController::class, 'success'])->name('wave.success');

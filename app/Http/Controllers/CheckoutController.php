@@ -5,9 +5,12 @@ namespace App\Http\Controllers;
 use App\Models\Coupon;
 use App\Models\Delivery;
 use App\Models\Order;
+use App\Models\PaymentAttempt;
 use App\Services\CartService;
 use App\Services\OrderService;
 use App\Services\PaymentDispatcher;
+use App\Services\PayTechService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -20,6 +23,7 @@ class CheckoutController extends Controller
         private readonly CartService $cart,
         private readonly OrderService $orders,
         private readonly PaymentDispatcher $payments,
+        private readonly PayTechService $payTech,
     ) {
     }
 
@@ -30,12 +34,10 @@ class CheckoutController extends Controller
     public function index(Request $request): View|RedirectResponse
     {
         if (empty($this->cart->items())) {
-            // Le panier est vidé dès la création de la commande, avant même la redirection vers
-            // le prestataire de paiement en ligne — un client qui revient en arrière depuis
-            // PayTech/Wave/Orange Money (au lieu d'utiliser leur propre bouton d'annulation)
-            // atterrit donc ici avec un panier vide, sans jamais avoir vu que sa commande existe
-            // déjà et reste payable. On le renvoie vers elle plutôt que vers un panier vide qui
-            // laisserait croire que la tentative n'a rien laissé.
+            // Le panier n'est vidé qu'à la création RÉELLE d'une commande — jamais avant, y
+            // compris pour Wave/Orange Money/Carte (voir store() ci-dessous : seule une tentative
+            // légère existe tant que le paiement n'a pas réussi). Ce garde-fou ne concerne donc
+            // plus que Djamo/Free Money, seuls moyens encore créés en attente de paiement.
             $lastOrderId = $request->session()->get('last_order_id');
             $pendingOrder = $lastOrderId ? Order::find($lastOrderId) : null;
 
@@ -116,21 +118,55 @@ class CheckoutController extends Controller
             }
         }
 
+        $customer = [
+            'user_id' => auth()->id(),
+            'name' => $data['customer_name'],
+            'phone' => $data['customer_phone'],
+            'email' => $data['customer_email'],
+        ];
+        $deliveryInput = [
+            'region' => $data['delivery_region'],
+            'city' => $data['delivery_city'],
+            'quartier' => $data['delivery_quartier'] ?? null,
+            'address' => $data['delivery_address'] ?? '',
+            'instructions' => $data['delivery_instructions'] ?? null,
+        ];
+
+        // Wave/Orange Money/Carte : aucune commande n'est créée avant un paiement réellement
+        // réussi — seule une tentative légère (voir PaymentAttempt) est enregistrée, et le
+        // panier n'est PAS vidé tant que ce succès n'est pas confirmé par l'IPN PayTech.
+        if (in_array($data['payment_method'], ['wave', 'orange_money', 'carte'], true)) {
+            try {
+                $attempt = $this->orders->createAttempt(
+                    customer: $customer,
+                    delivery: $deliveryInput,
+                    paymentMethod: $data['payment_method'],
+                    deliveryZone: $delivery,
+                    coupon: $coupon,
+                );
+            } catch (RuntimeException $e) {
+                return back()->withErrors(['cart' => $e->getMessage()]);
+            }
+
+            $request->session()->put('last_attempt_id', $attempt->id);
+
+            $result = $this->payTech->createPayment($attempt);
+
+            if (! $result['success']) {
+                return redirect()->route('checkout.index')
+                    ->withErrors(['payment_method' => 'Le paiement en ligne est momentanément indisponible. '.($result['message'] ?? '')])
+                    ->withInput();
+            }
+
+            return redirect()->away($result['redirect_url']);
+        }
+
+        // Paiement à la livraison, et Djamo/Free Money (PayDunya, intégration dormante conservée
+        // telle quelle) : la commande est créée immédiatement, comme avant.
         try {
             $order = $this->orders->createFromCart(
-                customer: [
-                    'user_id' => auth()->id(),
-                    'name' => $data['customer_name'],
-                    'phone' => $data['customer_phone'],
-                    'email' => $data['customer_email'],
-                ],
-                delivery: [
-                    'region' => $data['delivery_region'],
-                    'city' => $data['delivery_city'],
-                    'quartier' => $data['delivery_quartier'] ?? null,
-                    'address' => $data['delivery_address'] ?? '',
-                    'instructions' => $data['delivery_instructions'] ?? null,
-                ],
+                customer: $customer,
+                delivery: $deliveryInput,
                 paymentMethod: $data['payment_method'],
                 deliveryZone: $delivery,
                 coupon: $coupon,
@@ -164,19 +200,14 @@ class CheckoutController extends Controller
 
         $request->session()->put('last_order_id', $order->id);
 
-        // Paiement à la livraison : la commande est déjà engagée, on notifie tout de suite.
-        // Paiement en ligne (Wave/Orange Money/Carte/Djamo/Free Money) : notification distincte
-        // "paiement en attente" ci-dessous, puis "paiement reçu" seulement après confirmation
-        // réelle du paiement (voir PayTechController::ipn / PayDunyaController::callback) — le
-        // client, lui, n'est confirmé par email que dans ce second cas.
         if ($data['payment_method'] === 'cod') {
             $this->orders->notifyPlaced($order);
 
             return redirect()->route('checkout.confirmation', $order);
         }
 
-        // Commande en ligne créée mais pas encore payée : l'équipe doit le savoir tout de suite
-        // (section 5 du cahier des charges), avant même que le client atteigne la passerelle.
+        // Djamo/Free Money : notification "paiement en attente" puis "paiement reçu" plus tard,
+        // comportement inchangé (voir PayDunyaController).
         $this->orders->notifyPendingPayment($order);
 
         $payment = $this->payments->initiate($order);
@@ -215,7 +246,7 @@ class CheckoutController extends Controller
      * page à l'aveugle, et par l'alerte au retour navigateur (section 20-22 du cahier des
      * charges). Même règle d'accès que confirmation() ci-dessus.
      */
-    public function status(Request $request, Order $order): \Illuminate\Http\JsonResponse
+    public function status(Request $request, Order $order): JsonResponse
     {
         abort_unless(
             ($order->user_id && $order->user_id === auth()->id())
@@ -226,6 +257,39 @@ class CheckoutController extends Controller
         return response()->json([
             'status' => $order->status,
             'payment_status' => $order->payment_status,
+        ]);
+    }
+
+    /**
+     * Page d'attente pour Wave/Orange Money/Carte pendant que l'IPN PayTech n'est pas encore
+     * arrivée (voir PayTechController::success) — la commande n'existe pas forcément encore.
+     */
+    public function attemptShow(Request $request, PaymentAttempt $attempt): View
+    {
+        abort_unless(
+            ($attempt->user_id && $attempt->user_id === auth()->id())
+                || $request->session()->get('last_attempt_id') === $attempt->id,
+            403
+        );
+
+        return view('checkout.attempt-pending', ['attempt' => $attempt]);
+    }
+
+    /**
+     * Lecture légère du statut d'une tentative — poll par la page d'attente ci-dessus jusqu'à ce
+     * que order_id soit connu (paiement confirmé) ou que le statut devienne définitivement négatif.
+     */
+    public function attemptStatus(Request $request, PaymentAttempt $attempt): JsonResponse
+    {
+        abort_unless(
+            ($attempt->user_id && $attempt->user_id === auth()->id())
+                || $request->session()->get('last_attempt_id') === $attempt->id,
+            403
+        );
+
+        return response()->json([
+            'status' => $attempt->status,
+            'order_id' => $attempt->order_id,
         ]);
     }
 

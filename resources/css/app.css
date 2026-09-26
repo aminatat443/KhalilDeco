@@ -12,6 +12,19 @@
         'Segoe UI Symbol', 'Noto Color Emoji';
     --font-display: 'Fraunces', ui-serif, Georgia, serif;
 
+    /* Grille de points de rupture officielle du site (stratégie responsive mobile-first) — seul
+       `sm` diffère du défaut Tailwind (640px) ; md/lg/xl/2xl correspondent déjà exactement aux
+       valeurs demandées (768/1024/1280/1536), déclarés ici explicitement pour que toute la grille
+       reste visible et cohérente à un seul endroit plutôt que dispersée. Aucun préfixe dédié pour
+       "< 480px" : c'est le style non préfixé (mobile par défaut) dans ce modèle mobile-first.
+       Redéfinir `sm` ici s'applique automatiquement à tous les `sm:` déjà utilisés dans le code —
+       jamais besoin de modifier chaque fichier un par un. */
+    --breakpoint-sm: 30rem; /* 480px — smartphones larges */
+    --breakpoint-md: 48rem; /* 768px — tablettes */
+    --breakpoint-lg: 64rem; /* 1024px — petits écrans desktop */
+    --breakpoint-xl: 80rem; /* 1280px — desktop standard */
+    --breakpoint-2xl: 96rem; /* 1536px — grands écrans */
+
     /* Charte graphique Khalil Building (docs/SPEC.md §3) — primaire = vert profond (identité,
        logo, boutons, nav, liens, éléments actifs), secondaire = anthracite (titres, texte,
        icônes, footer), tertiaire = sable (accents, à utiliser avec parcimonie). */
@@ -41,6 +54,18 @@
 
 [x-cloak] {
     display: none !important;
+}
+
+/* Filet de sécurité global contre tout débordement horizontal accidentel (règle absolue de la
+   stratégie responsive) — n'affecte jamais un scroll horizontal volontaire déclaré localement
+   (tableaux, carrousels via x-horizontal-scroller), qui reste porté par leur propre conteneur
+   overflow-x-auto, complètement indépendant de cette règle posée sur html/body. */
+/* Uniquement sur html, jamais sur body : appliquer overflow-x sur body en ferait son propre
+   conteneur de défilement, ce qui casse position:sticky (nav, sidebar...) pour tous ses
+   descendants — piège CSS classique et bien documenté sur ce couple de propriétés. */
+html {
+    max-width: 100%;
+    overflow-x: hidden;
 }
 
 /* Applique l'état "sidebar repliée" dès le tout premier rendu (avant l'hydratation d'Alpine),

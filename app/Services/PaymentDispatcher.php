@@ -6,31 +6,26 @@ use App\Models\Order;
 use App\Models\PaymentEvent;
 
 /**
- * Point d'entrée unique pour démarrer une tentative de paiement en ligne, quel que soit le
- * prestataire — le checkout initial (CheckoutController::store) et la relance après échec/
- * annulation (PaymentController::retry) partagent cette même répartition, pour ne jamais la
- * dupliquer entre les deux points d'appel.
+ * Point d'entrée pour démarrer une tentative de paiement en ligne pour une commande déjà créée —
+ * n'est plus utilisé que par Djamo/Free Money (PayDunya). Wave/Orange Money/Carte (PayTech) sont
+ * désormais gérés directement par CheckoutController via PayTechService::createPayment(), qui
+ * opère sur une PaymentAttempt et non plus une Order : la commande n'est créée qu'après un
+ * paiement réellement réussi (voir OrderService::createFromAttempt), donc plus tôt dans le
+ * parcours qu'ici. PayDunyaService reste inchangé, cette classe continue de le router tel quel.
  */
 class PaymentDispatcher
 {
     public function __construct(
-        private readonly PayTechService $payTech,
         private readonly PayDunyaService $payDunya,
     ) {
     }
 
     /**
-     * Wave/Orange Money/Carte repassent par PayTech (système précédent, remis en place) — Djamo
-     * et Free Money, non couverts par PayTech, restent sur PayDunya. Les intégrations directes
-     * (WaveService/WaveController, OrangeMoneyService/OrangeMoneyController) restent intactes
-     * dans le code, simplement inutilisées pour l'instant.
-     *
      * @return array{success: bool, redirect_url: ?string, message: ?string, payment: ?\App\Models\Payment}
      */
     public function initiate(Order $order): array
     {
         $result = match ($order->payment_method) {
-            'wave', 'orange_money', 'carte' => $this->payTech->createPayment($order),
             'djamo', 'free_money' => $this->payDunya->createPayment($order),
             default => ['success' => false, 'redirect_url' => null, 'message' => 'Moyen de paiement non pris en charge.', 'payment' => null],
         };

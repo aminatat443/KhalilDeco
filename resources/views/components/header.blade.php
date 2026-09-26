@@ -23,7 +23,7 @@
         :class="scrolled ? 'h-20 border-secondary-shade/10 shadow-[0_1px_0_0_rgba(33,55,55,0.06)]' : 'h-24 border-transparent'"
         class="relative border-b bg-white transition-[height] duration-300"
     >
-        <div class="mx-auto grid h-full max-w-[1600px] grid-cols-[auto_1fr_auto] items-center gap-4 px-6 sm:px-10 xl:flex xl:gap-10">
+        <div class="mx-auto grid h-full max-w-[1440px] grid-cols-[auto_1fr_auto] items-center gap-4 px-6 sm:px-10 xl:flex xl:gap-10">
 
             {{-- Bouton menu mobile --}}
             <button type="button" @click="mobileMenuOpen = true" class="text-secondary-shade transition hover:text-primary xl:hidden" aria-label="Menu">
@@ -230,7 +230,7 @@
                     },
                 }"
                 x-init="$watch('searchOpen', (open) => { if (!open) { q = ''; results = []; } })"
-                class="mx-auto max-w-[1600px] px-6 py-6 sm:px-10"
+                class="mx-auto max-w-[1440px] px-6 py-6 sm:px-10"
             >
                 <form action="{{ route('search') }}" method="GET">
                     <input

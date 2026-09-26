@@ -7,6 +7,7 @@ use App\Models\Coupon;
 use App\Models\Delivery;
 use App\Models\Order;
 use App\Models\Payment;
+use App\Models\PaymentAttempt;
 use App\Models\PaymentEvent;
 use App\Models\Product;
 use App\Models\ProductVariant;
@@ -20,6 +21,7 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Str;
 use RuntimeException;
 use Throwable;
 
@@ -110,6 +112,136 @@ class OrderService
             }
 
             $this->cart->clear();
+
+            return $order;
+        });
+    }
+
+    /**
+     * Wave/Orange Money/Carte : aucune commande n'est créée tant que le paiement n'a pas
+     * réellement réussi — seule une tentative légère (trace minimale en cas d'échec/abandon) est
+     * enregistrée, avec tout ce qu'il faut figé pour matérialiser la commande plus tard depuis
+     * l'IPN (voir createFromAttempt), qui arrive côté serveur sans panier de session disponible.
+     * Le panier n'est PAS vidé ici — seulement à la création réelle de la commande.
+     */
+    public function createAttempt(array $customer, array $delivery, string $paymentMethod, Delivery $deliveryZone, ?Coupon $coupon = null): PaymentAttempt
+    {
+        $items = $this->cart->items();
+
+        if (empty($items)) {
+            throw new RuntimeException('Le panier est vide.');
+        }
+
+        $subtotal = array_sum(array_column($items, 'subtotal'));
+        $discount = $coupon ? $this->promotions->couponDiscount($coupon, $subtotal) : 0;
+        $deliveryFee = $deliveryZone->fee;
+
+        $itemsSnapshot = array_map(fn (array $item) => [
+            'product_id' => $item['product']->id,
+            'product_variant_id' => $item['variant']?->id,
+            'product_name' => $item['product']->name,
+            'variant_label' => $this->variantLabel($item['variant']),
+            'sku' => $item['variant']?->sku,
+            'unit_price' => $item['unit_price'],
+            'quantity' => $item['quantity'],
+            'subtotal' => $item['subtotal'],
+        ], $items);
+
+        return PaymentAttempt::create([
+            'reference' => 'ATT-'.strtoupper(Str::random(10)),
+            'customer_name' => $customer['name'],
+            'customer_phone' => $customer['phone'],
+            'customer_email' => $customer['email'],
+            'user_id' => $customer['user_id'] ?? null,
+            'payment_method' => $paymentMethod,
+            'subtotal' => $subtotal,
+            'discount' => $discount,
+            'amount' => max(0, $subtotal + $deliveryFee - $discount),
+            'cart_snapshot' => $itemsSnapshot,
+            'delivery_snapshot' => [
+                'address_id' => $delivery['address_id'] ?? null,
+                'delivery_id' => $deliveryZone->id,
+                'delivery_zone' => $deliveryZone->zone,
+                'delivery_fee' => $deliveryFee,
+                'region' => $delivery['region'],
+                'city' => $delivery['city'],
+                'quartier' => $delivery['quartier'] ?? null,
+                'address' => $delivery['address'],
+                'instructions' => $delivery['instructions'] ?? null,
+            ],
+            'coupon_id' => $coupon?->id,
+            'status' => 'pending',
+        ]);
+    }
+
+    /**
+     * Matérialise la commande réelle une fois le paiement de la tentative confirmé — jamais
+     * avant. Reprend depuis le snapshot figé (jamais depuis le panier live, absent dans le
+     * contexte serveur-à-serveur d'un IPN) le rattachement d'adresse par défaut et le
+     * regroupement des commandes invité qui, pour createFromCart(), se fait dans
+     * CheckoutController::store() juste après la création (auth()->user() n'existe plus ici).
+     */
+    public function createFromAttempt(PaymentAttempt $attempt): Order
+    {
+        return DB::transaction(function () use ($attempt) {
+            $delivery = $attempt->delivery_snapshot;
+
+            [$nextId, $orderNumber] = $this->reserveOrderNumber();
+
+            $order = Order::create([
+                'id' => $nextId,
+                'order_number' => $orderNumber,
+                'user_id' => $attempt->user_id,
+                'address_id' => $delivery['address_id'] ?? null,
+                'coupon_id' => $attempt->coupon_id,
+                'delivery_id' => $delivery['delivery_id'],
+                'customer_name' => $attempt->customer_name,
+                'customer_phone' => $attempt->customer_phone,
+                'customer_email' => $attempt->customer_email,
+                'delivery_region' => $delivery['region'],
+                'delivery_zone' => $delivery['delivery_zone'],
+                'delivery_city' => $delivery['city'],
+                'delivery_quartier' => $delivery['quartier'] ?? null,
+                'delivery_address' => $delivery['address'],
+                'delivery_instructions' => $delivery['instructions'] ?? null,
+                'subtotal' => $attempt->subtotal,
+                'delivery_fee' => $delivery['delivery_fee'],
+                'discount' => $attempt->discount,
+                'total' => $attempt->amount,
+                'payment_method' => $attempt->payment_method,
+                'payment_status' => 'paid',
+                'status' => 'recue',
+            ]);
+
+            PaymentEvent::record($order, 'order_created');
+
+            foreach ($attempt->cart_snapshot as $item) {
+                $order->items()->create($item);
+            }
+
+            if ($attempt->coupon_id) {
+                $attempt->coupon?->usages()->create([
+                    'order_id' => $order->id,
+                    'user_id' => $attempt->user_id,
+                ]);
+            }
+
+            if ($attempt->user_id && ($user = $attempt->user)) {
+                $user->addresses()->updateOrCreate(
+                    ['is_default' => true],
+                    [
+                        'full_name' => $attempt->customer_name,
+                        'phone' => $attempt->customer_phone,
+                        'region' => $delivery['region'],
+                        'city' => $delivery['city'],
+                        'quartier' => $delivery['quartier'] ?? null,
+                        'address' => $delivery['address'],
+                        'instructions' => $delivery['instructions'] ?? null,
+                    ]
+                );
+
+                $this->syncGuestOrders($user, $attempt->customer_phone);
+            }
 
             return $order;
         });
@@ -289,8 +421,9 @@ class OrderService
 
     /**
      * Paiement confirmé côté serveur (IPN vérifié) : email de confirmation au client (jamais
-     * envoyé avant, voir createFromCart) + notification à l'équipe comptable/caisse. Remplace
-     * l'ancien appel à notifyPlaced() dans les contrôleurs IPN.
+     * envoyé avant, voir createFromCart) + notification à l'équipe comptable/caisse. Utilisée par
+     * Djamo/Free Money (PayDunya), dont la commande existait déjà avant paiement — comportement
+     * inchangé, voir notifyNewOnlineOrder() pour Wave/Orange Money/Carte où ce n'est pas le cas.
      */
     public function notifyPaymentReceived(Order $order, Payment $payment): void
     {
@@ -301,6 +434,19 @@ class OrderService
         }
 
         Notification::send($this->staffWithPermission('payments.view'), new PaymentReceivedNotification($order, $payment));
+    }
+
+    /**
+     * Wave/Orange Money/Carte uniquement (voir createFromAttempt) : la commande n'existait pas
+     * avant l'instant précis où le paiement est confirmé — "nouvelle commande" et "paiement reçu"
+     * sont donc deux faits annoncés en même temps, contrairement à Djamo/Free Money où ils restent
+     * séparés dans le temps (notifyPendingPayment() puis notifyPaymentReceived() plus tard).
+     */
+    public function notifyNewOnlineOrder(Order $order, Payment $payment): void
+    {
+        Notification::send($this->staffWithPermission('orders.view'), new NewOrderNotification($order));
+
+        $this->notifyPaymentReceived($order, $payment);
     }
 
     public function notifyPaymentFailed(Order $order): void

@@ -2,17 +2,17 @@
 
 namespace App\Services;
 
-use App\Models\Order;
+use App\Models\PaymentAttempt;
 use Illuminate\Support\Facades\Http;
 
 /**
  * Paiement en ligne Wave/Orange Money/Carte bancaire via l'agrégateur PayTech (paytech.sn),
- * seule intégration de paiement en ligne de l'application — voir doc.paytech.sn pour la
- * référence de chaque paramètre/endpoint utilisé ici.
+ * seule intégration de paiement en ligne de l'application pour ces 3 moyens — voir doc.paytech.sn
+ * pour la référence de chaque paramètre/endpoint utilisé ici.
  *
- * Chaque tentative de paiement (une commande peut en avoir plusieurs après une annulation ou
- * un échec) a sa propre ligne `payments` et sa propre référence PayTech (ref_command) — jamais
- * le numéro de commande seul, qui ne serait pas unique à travers plusieurs tentatives.
+ * Opère sur une PaymentAttempt (tentative), jamais sur une Order : la commande n'est créée
+ * qu'après confirmation réelle du paiement (voir OrderService::createFromAttempt, appelé depuis
+ * PayTechController::ipn) — pas avant, contrairement à Djamo/Free Money (PayDunyaService).
  */
 class PayTechService
 {
@@ -25,71 +25,62 @@ class PayTechService
     ];
 
     /**
-     * Démarre une tentative de paiement : crée la ligne `payments` (statut "pending" puis
-     * "processing"/"failed" selon la réponse), appelle PayTech, et renvoie l'URL de
-     * redirection vers sa page de paiement hébergée.
+     * Démarre une tentative de paiement : appelle PayTech et renvoie l'URL de redirection vers sa
+     * page de paiement hébergée. Le statut/la réponse brute sont stockés directement sur la
+     * tentative (pas de ligne `payments` avant succès, puisqu'aucune commande n'existe encore).
      *
      * N'échoue jamais par exception (erreur réseau/API PayTech) — renvoie un tableau
      * ['success' => false, 'message' => ...] pour laisser l'appelant proposer une alternative
      * (ex. le paiement à la livraison).
      */
-    public function createPayment(Order $order): array
+    public function createPayment(PaymentAttempt $attempt): array
     {
         $key = config('services.paytech.key');
         $secret = config('services.paytech.secret');
 
         if (! $key || ! $secret) {
-            return ['success' => false, 'redirect_url' => null, 'message' => 'Paiement en ligne non configuré.', 'payment' => null];
+            return ['success' => false, 'redirect_url' => null, 'message' => 'Paiement en ligne non configuré.', 'attempt' => $attempt];
         }
 
-        $refCommand = $this->generateRefCommand($order);
+        // amount garde le vrai total de la tentative (comptabilité/rapports une fois la commande
+        // matérialisée) — seul le montant envoyé à PayTech (item_price) est réduit, pour que les
+        // frais qu'ils ajoutent côté client sur leur page de paiement retombent sur ce vrai total.
+        // Voir le commentaire sur services.paytech.fee_rate.
+        $sentAmount = $this->applyFeeCompensation((int) $attempt->amount);
 
-        // payment.amount garde le vrai total de la commande (comptabilité/rapports) — seul le
-        // montant envoyé à PayTech (item_price) est réduit, pour que les frais qu'ils ajoutent
-        // côté client sur leur page de paiement retombent sur ce vrai total. Voir le commentaire
-        // sur services.paytech.fee_rate.
-        $sentAmount = $this->applyFeeCompensation((int) $order->total);
-
-        $payment = $order->payments()->create([
-            'provider' => $order->payment_method,
-            'gateway' => 'paytech',
-            'transaction_id' => $refCommand,
-            'amount' => (int) $order->total,
-            'status' => 'pending',
-        ]);
+        $attempt->update(['status' => 'pending']);
 
         try {
             $response = Http::withHeaders([
                 'API_KEY' => $key,
                 'API_SECRET' => $secret,
             ])->asJson()->post(self::REQUEST_PAYMENT_URL, [
-                'item_name' => 'Commande '.$order->order_number,
+                'item_name' => 'Commande Khalil Déco',
                 'item_price' => $sentAmount,
-                'ref_command' => $refCommand,
-                'command_name' => 'Commande '.$order->order_number.' — Khalil Déco',
+                'ref_command' => $attempt->reference,
+                'command_name' => 'Khalil Déco — '.$attempt->reference,
                 'currency' => 'XOF',
                 'env' => config('services.paytech.env', 'test'),
                 'ipn_url' => config('services.paytech.ipn_url') ?: route('paytech.ipn'),
-                'success_url' => $this->returnUrl('success_url', 'paytech.success', $order),
-                'cancel_url' => $this->returnUrl('cancel_url', 'paytech.cancel', $order),
-                'target_payment' => self::TARGET_PAYMENT_MAP[$order->payment_method] ?? null,
+                'success_url' => $this->returnUrl('success_url', 'paytech.success', $attempt),
+                'cancel_url' => $this->returnUrl('cancel_url', 'paytech.cancel', $attempt),
+                'target_payment' => self::TARGET_PAYMENT_MAP[$attempt->payment_method] ?? null,
                 'custom_field' => json_encode([
-                    'order_id' => $order->id,
-                    'payment_id' => $payment->id,
-                    'user_id' => $order->user_id,
+                    'attempt_id' => $attempt->id,
+                    'user_id' => $attempt->user_id,
                 ]),
             ]);
         } catch (\Throwable $e) {
             report($e);
-            $payment->update(['status' => 'failed', 'raw_response' => $e->getMessage()]);
+            $attempt->update(['status' => 'failed', 'raw_response' => $e->getMessage()]);
 
-            return ['success' => false, 'redirect_url' => null, 'message' => 'Service de paiement injoignable.', 'payment' => $payment];
+            return ['success' => false, 'redirect_url' => null, 'message' => 'Service de paiement injoignable.', 'attempt' => $attempt];
         }
 
         $data = $response->json() ?? [];
         $success = (int) ($data['success'] ?? 0) === 1 && ! empty($data['redirect_url']);
 
-        $payment->update([
+        $attempt->update([
             'status' => $success ? 'processing' : 'failed',
             'raw_response' => json_encode($data),
         ]);
@@ -98,7 +89,7 @@ class PayTechService
             'success' => $success,
             'redirect_url' => $data['redirect_url'] ?? null,
             'message' => $data['message'] ?? null,
-            'payment' => $payment,
+            'attempt' => $attempt,
         ];
     }
 
@@ -155,42 +146,31 @@ class PayTechService
     }
 
     /**
-     * Montant minimum à exiger dans la notification IPN pour un total de commande donné — le
+     * Montant minimum à exiger dans la notification IPN pour un montant de tentative donné — le
      * montant réellement envoyé à PayTech (voir applyFeeCompensation), jamais le total complet
-     * de la commande quand la compensation de frais est active, sous peine de rejeter à tort des
-     * paiements pourtant légitimes.
+     * quand la compensation de frais est active, sous peine de rejeter à tort des paiements
+     * pourtant légitimes.
      */
-    public function minimumAcceptableAmount(int $orderTotal): int
+    public function minimumAcceptableAmount(int $attemptAmount): int
     {
-        return $this->applyFeeCompensation($orderTotal);
-    }
-
-    /**
-     * Référence unique à CETTE tentative de paiement — le numéro de commande seul ne suffit
-     * pas dès qu'une commande peut être payée en plusieurs essais (annulation, échec, retry).
-     */
-    private function generateRefCommand(Order $order): string
-    {
-        $attempt = $order->payments()->count() + 1;
-
-        return $order->order_number.'-'.str_pad((string) $attempt, 2, '0', STR_PAD_LEFT);
+        return $this->applyFeeCompensation($attemptAmount);
     }
 
     /**
      * URL fixe configurée (PAYTECH_SUCCESS_URL/CANCEL_URL), sinon URL générée pour cette
-     * commande précise via route(). La commande est identifiable soit par le paramètre de
-     * route ({order}), soit, avec une URL fixe, par le paramètre ?ref= ajouté ici.
+     * tentative précise via route(). La tentative est identifiable soit par le paramètre de
+     * route ({attempt}), soit, avec une URL fixe, par le paramètre ?ref= ajouté ici.
      */
-    private function returnUrl(string $configKey, string $routeName, Order $order): string
+    private function returnUrl(string $configKey, string $routeName, PaymentAttempt $attempt): string
     {
         $configured = config('services.paytech.'.$configKey);
 
         if ($configured) {
             $separator = str_contains($configured, '?') ? '&' : '?';
 
-            return $configured.$separator.'ref='.$order->order_number;
+            return $configured.$separator.'ref='.$attempt->reference;
         }
 
-        return route($routeName, $order);
+        return route($routeName, $attempt);
     }
 }

@@ -34,7 +34,7 @@
     $paymentStatusLabels = ['pending' => 'Paiement en attente', 'paid' => 'Payée', 'failed' => 'Paiement échoué', 'refunded' => 'Remboursée'];
 @endphp
 
-<div class="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+<div class="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
     <a
         href="{{ route('admin.orders.index', ['date' => today()->format('Y-m-d')]) }}"
         class="animate-fade-up bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md dark:bg-[#16201f] {{ request('date') === today()->format('Y-m-d') ? 'ring-2 ring-primary' : 'border border-secondary-shade/10 dark:border-white/10' }}"

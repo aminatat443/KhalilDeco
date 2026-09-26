@@ -5,14 +5,14 @@
 @section('content')
 
 <div class="border-b border-secondary-shade/10">
-    <nav class="mx-auto max-w-[1600px] overflow-x-auto whitespace-nowrap px-6 py-5 text-[10px] uppercase tracking-[0.06em] text-grey sm:px-10 lg:text-xs lg:tracking-[0.1em]">
+    <nav class="mx-auto max-w-[1440px] overflow-x-auto whitespace-nowrap px-6 py-5 text-[10px] uppercase tracking-[0.06em] text-grey sm:px-10 lg:text-xs lg:tracking-[0.1em]">
         <a href="{{ route('home') }}" class="hover:text-primary">Accueil</a>
         <span class="mx-1.5 lg:mx-2">/</span>
         <span class="text-secondary-shade">{{ $category->name }}</span>
     </nav>
 </div>
 
-<div class="mx-auto max-w-[1600px] px-6 py-16 sm:px-10">
+<div class="mx-auto max-w-[1440px] px-6 py-16 sm:px-10">
 
     <div
         x-data="{

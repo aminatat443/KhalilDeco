@@ -5,7 +5,7 @@
 @section('content')
 
 <div class="border-b border-secondary-shade/10">
-    <nav class="mx-auto max-w-[1600px] overflow-x-auto whitespace-nowrap px-6 py-5 text-[10px] uppercase tracking-[0.06em] text-grey sm:px-10 lg:text-xs lg:tracking-[0.1em]">
+    <nav class="mx-auto max-w-[1440px] overflow-x-auto whitespace-nowrap px-6 py-5 text-[10px] uppercase tracking-[0.06em] text-grey sm:px-10 lg:text-xs lg:tracking-[0.1em]">
         <a href="{{ route('home') }}" class="hover:text-primary">Accueil</a>
         <span class="mx-1.5 lg:mx-2">/</span>
         <a href="{{ route('catalog.show', $product->category) }}" class="hover:text-primary">{{ $product->category->name }}</a>
@@ -14,7 +14,7 @@
     </nav>
 </div>
 
-<div class="mx-auto max-w-[1600px] px-6 py-16 sm:px-10">
+<div class="mx-auto max-w-[1440px] px-6 py-16 sm:px-10">
 
     @php
         $galleryImages = $product->images->map(fn ($img) => [
@@ -262,7 +262,7 @@
 
 {{-- Avis clients (section 39 du cahier des charges) --}}
 <section class="border-t border-secondary-shade/10">
-    <div class="mx-auto max-w-[1600px] px-6 py-16 sm:px-10">
+    <div class="mx-auto max-w-[1440px] px-6 py-16 sm:px-10">
         <p class="text-xs font-medium uppercase tracking-[0.35em] text-grey">Retours clients</p>
         <div class="mt-3 flex flex-wrap items-end justify-between gap-4">
             <h2 class="font-display text-3xl font-normal italic text-secondary-shade sm:text-4xl">Avis clients</h2>
@@ -449,7 +449,7 @@
 
 @if($relatedProducts->isNotEmpty())
     <section class="border-t border-secondary-shade/10">
-        <div class="mx-auto max-w-[1600px] px-6 py-16 sm:px-10">
+        <div class="mx-auto max-w-[1440px] px-6 py-16 sm:px-10">
             <p class="text-xs font-medium uppercase tracking-[0.35em] text-grey">Vous pourriez aimer</p>
             <h2 class="mt-3 font-display text-2xl font-normal italic text-secondary-shade sm:text-3xl">Cela pourrait vous intéresser</h2>
 

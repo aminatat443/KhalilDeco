@@ -3,7 +3,7 @@
 @section('title', ($query ? 'Résultats pour « '.$query.' »' : 'Rechercher').' — Khalil Déco')
 
 @section('content')
-<div class="mx-auto max-w-[1600px] px-6 py-16 sm:px-10">
+<div class="mx-auto max-w-[1440px] px-6 py-16 sm:px-10">
 
     <div
         x-data="{
