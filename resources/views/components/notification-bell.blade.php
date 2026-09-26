@@ -45,8 +45,8 @@
     }"
     x-init="load(); setInterval(() => load(), 5000)"
     class="relative"
-    @mouseenter="open = true; load()"
-    @mouseleave="open = false"
+    @mouseenter="if (window.matchMedia('(hover: hover)').matches) { open = true; load(); }"
+    @mouseleave="if (window.matchMedia('(hover: hover)').matches) { open = false; }"
     @click.outside="open = false"
 >
     <button type="button" @click="open_()" class="relative text-secondary-shade transition hover:text-primary dark:text-white/70 dark:hover:text-white" aria-label="Notifications">
