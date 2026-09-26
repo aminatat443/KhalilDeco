@@ -54,18 +54,16 @@
         <span x-show="unread > 0" x-cloak x-text="unread > 9 ? '9+' : unread" class="absolute -right-2 -top-2 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-primary px-1 text-[9px] font-bold text-white"></span>
     </button>
 
-    {{-- pt-3 (plutôt qu'un mt-3 sur la boîte) pour garder la zone de survol continue entre la
-         cloche et le panneau — sinon la souris "sort" du survol en traversant l'espace.
-         Sur mobile/tablette, le bouton cloche est trop proche du bord droit pour qu'un panneau
-         ancré "right-0" de 320px tienne dans l'écran (il débordait à gauche) — on bascule en
-         position fixe centrée sous le header ; l'ancrage relatif au bouton ne reprend qu'à
-         partir de sm, où l'espace à droite de la cloche est suffisant. --}}
+    {{-- Toujours ancré au bouton cloche (jamais un centrage "fixed" indépendant, qui s'affichait
+         loin de l'icône sur mobile réel et rendait sa provenance peu claire) — la largeur est
+         plafonnée par rapport au viewport (min(...)) pour ne jamais déborder de l'écran, même sur
+         un très petit téléphone, tout en restant juste sous l'icône partout. --}}
     <div
         x-show="open"
         x-cloak
         x-transition:enter="transition ease-out duration-150" x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100"
         x-transition:leave="transition ease-in duration-100" x-transition:leave-start="opacity-100 scale-100" x-transition:leave-end="opacity-0 scale-95"
-        class="fixed left-1/2 top-[120px] z-[100] w-[85vw] max-w-[300px] -translate-x-1/2 sm:absolute sm:left-auto sm:right-0 sm:top-full sm:w-80 sm:max-w-none sm:translate-x-0 sm:pt-3"
+        class="absolute right-0 top-full z-[100] mt-4 w-[min(90vw,20rem)]"
     >
         <div class="border border-secondary-shade/10 bg-white shadow-lg dark:border-white/10 dark:bg-[#16201f]">
             <div class="flex items-center justify-between border-b border-secondary-shade/10 px-4 py-3 dark:border-white/10">

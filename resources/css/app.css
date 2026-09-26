@@ -56,17 +56,12 @@
     display: none !important;
 }
 
-/* Filet de sécurité global contre tout débordement horizontal accidentel (règle absolue de la
-   stratégie responsive) — n'affecte jamais un scroll horizontal volontaire déclaré localement
-   (tableaux, carrousels via x-horizontal-scroller), qui reste porté par leur propre conteneur
-   overflow-x-auto, complètement indépendant de cette règle posée sur html/body. */
-/* Uniquement sur html, jamais sur body : appliquer overflow-x sur body en ferait son propre
-   conteneur de défilement, ce qui casse position:sticky (nav, sidebar...) pour tous ses
-   descendants — piège CSS classique et bien documenté sur ce couple de propriétés. */
-html {
-    max-width: 100%;
-    overflow-x: hidden;
-}
+/* Pas de overflow-x:hidden global sur html/body : cette regle, essayee plus tot comme filet de
+   securite anti-debordement, casse position:sticky (sur body) et perturbe le calcul du viewport
+   pour position:fixed sur Safari iOS reel (sur html) -- deux regressions concretes decouvertes en
+   testant sur telephone, invisibles dans le simulateur du navigateur. La prevention du
+   debordement horizontal se fait page par page (max-w-*, w-full, jamais de largeur fixe en px
+   depassant l ecran) plutot que par ce raccourci CSS. */
 
 /* Applique l'état "sidebar repliée" dès le tout premier rendu (avant l'hydratation d'Alpine),
    grâce à la classe posée par le script inline du <head> qui lit localStorage en synchrone.
