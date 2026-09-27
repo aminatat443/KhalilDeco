@@ -53,10 +53,12 @@ class HomeController extends Controller
             ->take(6)
             ->get()
             ->map(fn (Product $product) => [
-                // "pad" plutôt que "fill" : les photos produit sont presque toujours en portrait,
-                // un recadrage en paysage 1200x700 coupait le vêtement. On garde l'image entière,
-                // complétée par la couleur dominante de la photo plutôt qu'un fond blanc imposé.
-                'image' => img_url($product->images->first()->url, 1200, 700, 'pad', 'auto'),
+                // "fit" plutôt que "fill" : les photos produit sont presque toujours en portrait,
+                // un recadrage en paysage 1200x700 coupait le produit. On garde l'image entière,
+                // non recadrée et sans fond ajouté — c'est la vue (home/index.blade.php) qui
+                // comble l'espace restant avec un arrière-plan flouté de cette même photo plutôt
+                // que des bandes de couleur unie.
+                'image' => img_url($product->images->first()->url, 1200, 700, 'fit'),
                 'name' => $product->name,
                 'price' => $product->price,
                 'url' => route('products.show', $product),

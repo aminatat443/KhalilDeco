@@ -71,9 +71,13 @@
                         x-transition:leave="transition ease-in duration-500"
                         x-transition:leave-start="opacity-100"
                         x-transition:leave-end="opacity-0"
-                        class="absolute inset-0 block"
+                        class="absolute inset-0 block overflow-hidden"
                     >
-                        <img :src="slide.image" :alt="slide.name" class="h-full w-full object-cover">
+                        {{-- Arrière-plan flouté (agrandi pour masquer ses propres bords nets) —
+                             comble tout le cadre sans jamais rogner la vraie photo au centre, qui
+                             elle reste entière (voir le commentaire sur "fit" dans HomeController). --}}
+                        <img :src="slide.image" alt="" aria-hidden="true" class="absolute inset-0 h-full w-full scale-125 object-cover object-center blur-2xl brightness-75">
+                        <img :src="slide.image" :alt="slide.name" class="relative h-full w-full object-contain">
                         <div class="absolute inset-0 bg-gradient-to-b from-black/35 via-transparent to-transparent"></div>
                     </a>
                 </template>
