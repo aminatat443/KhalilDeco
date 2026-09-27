@@ -44,7 +44,7 @@
     }"
     x-show="open"
     x-cloak
-    @keydown.escape.window="close()"
+    @keydown.escape.window="if (! window.__nestedOverlayOpen) close()"
     class="fixed inset-0 z-[90]"
 >
     <div class="absolute inset-0 bg-secondary-shade/40" @click="close()"></div>

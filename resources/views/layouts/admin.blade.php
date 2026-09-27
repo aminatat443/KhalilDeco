@@ -441,7 +441,7 @@
                 this.shareOpen = false;
             },
         }"
-        x-init="$watch('open', (value) => window.__invoicePreviewOpen = value)"
+        x-init="$watch('open', (value) => window.__nestedOverlayOpen = value)"
         x-on:open-invoice-preview.window="open = true; loading = true; shareOpen = false; label = $event.detail.label; url = $event.detail.url; phone = $event.detail.phone ?? null; setTimeout(() => loading = false, 1200)"
         x-on:keydown.escape.window="open = false"
         x-show="open"

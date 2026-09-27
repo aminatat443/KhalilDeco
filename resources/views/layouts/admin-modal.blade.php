@@ -22,7 +22,7 @@
 <div
     x-data="{ show: false }"
     x-init="setTimeout(() => show = true, 10)"
-    @keydown.escape.window="if (! window.__invoicePreviewOpen) window.location = '{{ $modalBack ?? route('admin.dashboard') }}'"
+    @keydown.escape.window="if (! window.__nestedOverlayOpen) window.location = '{{ $modalBack ?? route('admin.dashboard') }}'"
     class="fixed inset-0 z-50"
 >
 
