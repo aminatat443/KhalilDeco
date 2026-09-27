@@ -2,7 +2,7 @@
      on affiche l'essentiel en carte et on renvoie vers la fiche pour le reste. --}}
 <div class="space-y-3 lg:hidden">
     @forelse($products as $product)
-        <div onclick="window.location='{{ route('admin.products.edit', $product) }}'" class="cursor-pointer bg-white p-4 border border-secondary-shade/10 dark:bg-[#16201f] dark:border-white/10">
+        <div onclick="window.openAdminModal('{{ route('admin.products.edit', $product) }}')" class="cursor-pointer bg-white p-4 border border-secondary-shade/10 dark:bg-[#16201f] dark:border-white/10">
             <div class="flex items-center gap-3">
                 <div class="h-14 w-12 shrink-0 overflow-hidden bg-grey-tint dark:bg-white/10">
                     @if($image = $product->images->first()?->url)
@@ -40,7 +40,7 @@
                 >
                     <i class="fa-solid fa-tag"></i>
                 </button>
-                <a href="{{ route('admin.products.edit', $product) }}" title="Modifier" aria-label="Modifier" class="ml-auto flex h-9 w-9 items-center justify-center text-sm text-secondary-shade hover:text-primary dark:text-white/70">
+                <a href="{{ route('admin.products.edit', $product) }}" onclick="event.preventDefault(); window.openAdminModal(this.href)" title="Modifier" aria-label="Modifier" class="ml-auto flex h-9 w-9 items-center justify-center text-sm text-secondary-shade hover:text-primary dark:text-white/70">
                     <i class="fa-solid fa-pen"></i>
                 </a>
             </div>
@@ -68,7 +68,7 @@
         </thead>
         <tbody class="divide-y divide-secondary-shade/10 dark:divide-white/10">
             @forelse($products as $product)
-                <tr onclick="window.location='{{ route('admin.products.edit', $product) }}'" class="cursor-pointer transition hover:bg-grey-tint/40 dark:hover:bg-white/5">
+                <tr onclick="window.openAdminModal('{{ route('admin.products.edit', $product) }}')" class="cursor-pointer transition hover:bg-grey-tint/40 dark:hover:bg-white/5">
                     <td class="flex items-center gap-3 px-6 py-4">
                         <div class="h-12 w-10 shrink-0 overflow-hidden bg-grey-tint dark:bg-white/10">
                             @if($image = $product->images->first()?->url)
@@ -109,7 +109,7 @@
                         </div>
                     </td>
                     <td class="px-6 py-4 text-right" onclick="event.stopPropagation()">
-                        <a href="{{ route('admin.products.edit', $product) }}" title="Modifier" aria-label="Modifier" class="inline-flex h-8 w-8 items-center justify-center text-sm text-secondary-shade hover:text-primary dark:text-white/70"><i class="fa-solid fa-pen"></i></a>
+                        <a href="{{ route('admin.products.edit', $product) }}" onclick="event.preventDefault(); window.openAdminModal(this.href)" title="Modifier" aria-label="Modifier" class="inline-flex h-8 w-8 items-center justify-center text-sm text-secondary-shade hover:text-primary dark:text-white/70"><i class="fa-solid fa-pen"></i></a>
                     </td>
                 </tr>
             @empty

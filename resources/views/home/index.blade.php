@@ -87,17 +87,17 @@
                 {{-- Flèches --}}
                 <button
                     @click.prevent="prev()"
-                    class="absolute left-5 top-1/2 -translate-y-1/2 text-lg text-white transition hover:opacity-60"
+                    class="absolute left-4 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center bg-white/90 text-secondary-shade shadow transition hover:bg-white hover:text-primary"
                     aria-label="Image précédente"
                 >
-                    <i class="fa-solid fa-chevron-left"></i>
+                    <i class="fa-solid fa-chevron-left text-sm"></i>
                 </button>
                 <button
                     @click.prevent="next()"
-                    class="absolute right-5 top-1/2 -translate-y-1/2 text-lg text-white transition hover:opacity-60"
+                    class="absolute right-4 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center bg-white/90 text-secondary-shade shadow transition hover:bg-white hover:text-primary"
                     aria-label="Image suivante"
                 >
-                    <i class="fa-solid fa-chevron-right"></i>
+                    <i class="fa-solid fa-chevron-right text-sm"></i>
                 </button>
 
                 {{-- Points de navigation --}}

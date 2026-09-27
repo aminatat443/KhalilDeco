@@ -1,5 +1,21 @@
-{{-- Habillage "modale flottante" pour les pages de création/modification du back-office --}}
-@extends('layouts.admin')
+{{-- Habillage "modale flottante" pour les pages de création/modification du back-office.
+     Chargée en AJAX (voir x-admin-page-modal) : ne reprend que le contenu, jamais tout le
+     châssis admin (sidebar/topbar déjà affichés, jamais rechargés). Navigation directe ou
+     rechargement de l'URL : page complète normale, inchangée.
+
+     IMPORTANT : @extends est compilé à part par Blade (footer, indépendant de sa position dans
+     le fichier) — un @if autour de @extends ne fonctionne PAS, la valeur doit être une
+     expression évaluée à l'exécution, d'où le ternaire ci-dessous plutôt qu'un branchement par
+     @if/@else. --}}
+@extends(request()->ajax() ? 'layouts.admin-modal-bare' : 'layouts.admin')
+
+@section('bare')
+    <div class="w-full @yield('modal-width', 'max-w-xl') mx-auto">
+        <div class="max-h-[85vh] overflow-y-auto p-5 sm:p-10">
+            @yield('modal')
+        </div>
+    </div>
+@endsection
 
 @section('content')
 

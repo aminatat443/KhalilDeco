@@ -13,8 +13,8 @@
         <img src="{{ img_url($image->url, 300, 300) }}" alt="{{ $image->alt }}" class="pointer-events-none h-full w-full object-cover">
 
         @if($loop->first)
-            <span class="pointer-events-none absolute left-2 top-2 z-10 bg-secondary-shade px-2 py-1 text-[9px] font-semibold uppercase tracking-[0.1em] text-white">
-                <i class="fa-solid fa-star mr-1"></i>Principale
+            <span class="pointer-events-none absolute left-1 top-1 z-10 flex h-5 w-5 items-center justify-center bg-secondary-shade text-white" title="Photo principale" aria-label="Photo principale">
+                <i class="fa-solid fa-star text-[9px]"></i>
             </span>
         @endif
 

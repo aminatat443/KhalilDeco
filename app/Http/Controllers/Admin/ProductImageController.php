@@ -104,7 +104,10 @@ class ProductImageController extends Controller
             ProductImage::where('id', $id)->update(['sort_order' => $order]);
         }
 
-        return response()->json(['status' => 'ok']);
+        // La convention "principale = plus petit sort_order" fait déjà de l'image glissée en
+        // première position la nouvelle principale côté serveur — renvoyer la grille à jour
+        // permet au badge de suivre immédiatement, sans recharger la page.
+        return $this->gridResponse($product);
     }
 
     public function destroy(Request $request, Product $product, ProductImage $image): RedirectResponse|JsonResponse

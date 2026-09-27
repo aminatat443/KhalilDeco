@@ -521,6 +521,10 @@
     {{-- Modale unique de détail de commande, ouverte depuis une notification (cloche) --}}
     <x-order-details-modal />
 
+    {{-- Charge les pages création/modification (layouts/admin-modal) en AJAX, sans jamais
+         recharger la liste en dessous — voir resources/views/components/admin-page-modal.blade.php --}}
+    <x-admin-page-modal />
+
     @stack('scripts')
 
 </body>

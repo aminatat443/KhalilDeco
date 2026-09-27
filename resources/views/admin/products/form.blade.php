@@ -176,9 +176,17 @@
     </div>
 </form>
 
-<a href="{{ route('admin.products.index') }}" class="mt-6 inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.1em] text-secondary-shade transition hover:text-primary dark:text-white/70">
-    <i class="fa-solid fa-arrow-left text-[10px]"></i>Retour aux produits
-</a>
+<div class="mt-6 flex flex-wrap items-center gap-6">
+    <a href="{{ route('admin.products.index') }}" class="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.1em] text-secondary-shade transition hover:text-primary dark:text-white/70">
+        <i class="fa-solid fa-arrow-left text-[10px]"></i>Retour aux produits
+    </a>
+
+    @unless($isDraft)
+        <a href="{{ route('products.show', $product) }}" target="_blank" rel="noopener" class="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.1em] text-secondary-shade transition hover:text-primary dark:text-white/70">
+            <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i>Voir le produit dans la boutique
+        </a>
+    @endunless
+</div>
 
     @can('delete', $product)
         <form action="{{ route('admin.products.destroy', $product) }}" method="POST" class="mt-4" onsubmit="return confirm('Supprimer définitivement ce produit ?');">
@@ -201,11 +209,17 @@
                 uploadError: null,
                 async persist() {
                     const ids = [...this.$refs.grid.querySelectorAll('[data-image-id]')].map(el => el.dataset.imageId);
-                    await fetch('{{ route('admin.products.images.reorder', $product) }}', {
+                    const response = await fetch('{{ route('admin.products.images.reorder', $product) }}', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json', Accept: 'application/json', 'X-XSRF-TOKEN': window.csrfToken ? window.csrfToken() : '' },
                         body: JSON.stringify({ ids }),
                     });
+                    if (response.ok) {
+                        // Le badge principale suit l image glissée en première position sans
+                        // attendre un rechargement de page (sort_order détermine déjà la
+                        // principale côté serveur, seul l affichage devait se mettre à jour).
+                        this.$refs.grid.innerHTML = (await response.json()).html;
+                    }
                 },
                 async upload(e) {
                     this.uploadError = null;

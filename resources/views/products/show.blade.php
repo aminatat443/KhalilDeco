@@ -157,7 +157,7 @@
                 </p>
             @endif
 
-            <h1 class="font-display text-3xl font-normal italic text-secondary-shade sm:text-4xl">{{ $product->name }}</h1>
+            <h1 class="text-balance font-display text-3xl font-normal italic leading-tight text-secondary-shade sm:text-4xl">{{ $product->name }}</h1>
 
             <div class="mt-5 flex items-baseline gap-3">
                 <p class="text-xl font-medium text-secondary-shade">{{ number_format($effectivePrice, 0, ',', ' ') }} FCFA</p>

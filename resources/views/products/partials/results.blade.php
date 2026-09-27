@@ -26,7 +26,7 @@
         <p class="text-sm text-grey">Aucun produit ne correspond à ces critères pour le moment.</p>
     </div>
 @else
-    <div class="grid grid-cols-1 gap-x-6 gap-y-14 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4">
+    <div class="grid grid-cols-2 gap-x-6 gap-y-14 md:grid-cols-3 xl:grid-cols-4">
         @foreach($products as $product)
             <x-product-card :product="$product" />
         @endforeach
