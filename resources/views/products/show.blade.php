@@ -18,7 +18,11 @@
 
     @php
         $galleryImages = $product->images->map(fn ($img) => [
-            'main' => img_url($img->url, 800, 560, 'pad', 'auto'),
+            // Recadrage plein cadre (comme les cartes produits/favoris ailleurs sur le site) —
+            // l'ancien mode "pad" complétait l'image avec un fond uni pour ne jamais rogner la
+            // photo, mais laissait apparaître ce fond en bandes de part et d'autre dès que le
+            // format d'origine ne correspondait pas exactement à 800x560.
+            'main' => img_url($img->url, 800, 560),
             'thumb' => img_url($img->url, 160, 160),
             'alt' => $img->alt ?? $product->name,
         ]);
@@ -79,7 +83,7 @@
                         :src="img.main"
                         :alt="img.alt"
                         @click="lightbox = true"
-                        class="h-full w-full cursor-zoom-in object-contain transition duration-500 ease-out group-hover:scale-110"
+                        class="h-full w-full cursor-zoom-in object-cover transition duration-500 ease-out group-hover:scale-110"
                     >
                 </template>
 
