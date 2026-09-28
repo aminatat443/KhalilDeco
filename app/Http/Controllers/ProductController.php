@@ -52,6 +52,10 @@ class ProductController extends Controller
             ->sortBy('sortOrder')
             ->values();
 
+        // N'affiche l'indice "cliquez sur une variante pour voir ses photos" que si au moins
+        // une variante en a réellement — sinon le message serait trompeur (rien à voir).
+        $hasVariantImages = $product->variants->contains(fn ($v) => $v->images->isNotEmpty());
+
         $reviews = $product->reviews()->where('is_approved', true)->with('user')->latest()->get();
         $myReview = auth()->check() ? $product->reviews()->where('user_id', auth()->id())->first() : null;
         $canEditReview = $myReview && auth()->user()->can('update', $myReview);
@@ -61,6 +65,7 @@ class ProductController extends Controller
         return view('products.show', [
             'product' => $product,
             'selectorAttributes' => $selectorAttributes,
+            'hasVariantImages' => $hasVariantImages,
             'effectivePrice' => $this->promotions->effectivePrice($product),
             'inStock' => $this->products->isInStock($product),
             'reviews' => $reviews,
