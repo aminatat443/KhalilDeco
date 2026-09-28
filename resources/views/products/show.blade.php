@@ -80,18 +80,26 @@
                     .flatMap(v => v.values);
             },
             images: {{ $galleryImages->toJson() }},
-            // Bascule automatique sur les photos de la variante sélectionnée dès qu'elle en a —
-            // sinon (variante sans photos propres, ou aucune sélection) la galerie générique du
-            // produit reste affichée.
+            // Bascule sur des photos de variante dès qu'UNE seule caractéristique est choisie
+            // (pas besoin d'attendre une combinaison complète) : dès que la variante exacte est
+            // connue, ses photos priment ; sinon, on cherche parmi les variantes encore
+            // compatibles avec ce qui est déjà sélectionné (ex. juste Blanc, sans la puissance)
+            // la première qui a ses propres photos. Sans aucune sélection, ou si rien de
+            // compatible n'a de photos, la galerie générique du produit reste affichée.
             get activeImages() {
-                return this.selectedVariant?.images?.length ? this.selectedVariant.images : this.images;
+                if (this.selectedVariant?.images?.length) return this.selectedVariant.images;
+                if (this.selectedValueIds.length > 0) {
+                    const compatible = this.variants.find(v => this.selectedValueIds.every(id => v.values.includes(id)) && v.images.length);
+                    if (compatible) return compatible.images;
+                }
+                return this.images;
             },
             active: 0,
             lightbox: false,
             next() { this.active = (this.active + 1) % this.activeImages.length },
             prev() { this.active = (this.active - 1 + this.activeImages.length) % this.activeImages.length },
         }"
-        x-init="$watch('selectedVariant', () => active = 0)"
+        x-init="$watch('selectedValueIds', () => active = 0)"
         class="grid gap-20 md:grid-cols-2"
     >
         {{-- Galerie (sections 25-26) --}}
