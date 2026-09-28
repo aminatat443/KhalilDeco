@@ -5,7 +5,7 @@
 @section('content')
 
 <h1 class="text-2xl font-semibold text-secondary-shade dark:text-white">Campagnes email</h1>
-<p class="mt-1 text-sm text-grey dark:text-white/40">Historique des campagnes envoyées — une ligne par campagne. Ouvrez « Voir les détails » pour la liste des destinataires.</p>
+<p class="mt-1 text-sm text-grey dark:text-white/40">Historique des campagnes envoyées — une ligne par campagne. Cliquez sur une ligne (ou l'icône <i class="fa-solid fa-eye"></i>) pour la liste des destinataires.</p>
 
 <div class="mt-6 flex flex-wrap gap-2 border-b border-secondary-shade/10 pb-px dark:border-white/10">
     <a href="{{ route('admin.campaigns.index') }}" class="border-b-2 border-transparent px-3 py-2.5 text-xs font-semibold uppercase tracking-[0.1em] text-grey transition hover:text-secondary-shade dark:text-white/40 dark:hover:text-white">Campagnes</a>

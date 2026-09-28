@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\ActivityLog;
 use App\Models\CashSession;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
@@ -18,16 +19,23 @@ class CashSessionController extends Controller
      * par ailleurs), clôture avec solde théorique calculé depuis les paiements espèces réels vs
      * montant compté — jamais une estimation.
      */
-    public function index(Request $request): View
+    public function index(Request $request): View|JsonResponse
     {
         $this->authorize('viewAny', CashSession::class);
-
-        $openSession = CashSession::where('user_id', $request->user()->id)->whereNull('closed_at')->first();
 
         $history = CashSession::with('user', 'closedBy')
             ->whereNotNull('closed_at')
             ->latest('closed_at')
             ->paginate(15);
+
+        // La pagination de l'historique (seule partie paginée de cette page) passe par fetch()
+        // via ajaxFilter — ne renvoyer que ce fragment, pas besoin de $openSession/$expectedNow
+        // qui n'apparaissent jamais dans ce bloc.
+        if ($request->ajax()) {
+            return response()->json(['html' => view('admin.cash.partials.history', ['history' => $history])->render()]);
+        }
+
+        $openSession = CashSession::where('user_id', $request->user()->id)->whereNull('closed_at')->first();
 
         return view('admin.cash.index', [
             'openSession' => $openSession,

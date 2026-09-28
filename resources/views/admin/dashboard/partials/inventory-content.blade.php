@@ -33,7 +33,25 @@
             <h2 class="text-xs font-semibold uppercase tracking-[0.15em] text-secondary-shade dark:text-white/70">À réapprovisionner</h2>
             <a href="{{ route('admin.stock.index') }}" class="text-xs text-primary hover:underline">Enregistrer un mouvement</a>
         </div>
-        <div class="mt-4 overflow-x-auto">
+        {{-- Cartes en dessous de lg, tableau au-delà — même bascule que products/orders (voir
+             admin/products/partials/table.blade.php), pour rester utilisable au tactile plutôt
+             que de forcer un défilement horizontal dans cette carte étroite du dashboard. --}}
+        <div class="mt-4 space-y-2 lg:hidden">
+            @forelse($restockList as $row)
+                <div onclick="window.location='{{ route('admin.products.edit', $row['productId']) }}'" class="cursor-pointer border border-secondary-shade/10 bg-white p-3 dark:border-white/10 dark:bg-[#16201f]">
+                    <p class="truncate text-sm text-secondary-shade dark:text-white">{{ $row['label'] }}</p>
+                    <dl class="mt-2 grid grid-cols-3 gap-2 text-xs">
+                        <div><dt class="text-grey/60 dark:text-white/30">Stock</dt><dd class="font-medium text-amber-600 dark:text-amber-400">{{ $row['stock'] }}</dd></div>
+                        <div><dt class="text-grey/60 dark:text-white/30">Vendu (30j)</dt><dd class="text-grey dark:text-white/40">{{ $row['sold30d'] ?? '—' }}</dd></div>
+                        <div><dt class="text-grey/60 dark:text-white/30">Recommandé</dt><dd class="text-secondary-shade dark:text-white">{{ $row['recommendedQty'] ?? '—' }}</dd></div>
+                    </dl>
+                </div>
+            @empty
+                <p class="py-4 text-sm text-grey dark:text-white/40">Aucun produit sous le seuil.</p>
+            @endforelse
+        </div>
+
+        <div class="mt-4 hidden overflow-x-auto lg:block">
             <table class="w-full text-sm">
                 <thead>
                     <tr class="border-b border-secondary-shade/10 text-left text-[11px] uppercase tracking-[0.08em] text-grey dark:border-white/10 dark:text-white/40">

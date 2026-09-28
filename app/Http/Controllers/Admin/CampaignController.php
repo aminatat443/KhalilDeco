@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Jobs\SendCampaignEmailJob;
 use App\Mail\NewArrivalsMail;
 use App\Mail\NewsletterMail;
 use App\Mail\PromotionMail;
@@ -308,14 +309,48 @@ class CampaignController extends Controller
         return response()->json(['products' => $products]);
     }
 
-    public function show(Campaign $campaign): View
+    public function show(Campaign $campaign): View|JsonResponse
     {
         $this->authorize('viewAny', Campaign::class);
 
+        $campaign->load('sender');
+        $sends = $campaign->sends()->with('user')->latest()->paginate(30);
+
+        if (request()->ajax()) {
+            return response()->json(['html' => view('admin.campaigns.partials.sends-detail-table', [
+                'campaign' => $campaign,
+                'sends' => $sends,
+            ])->render()]);
+        }
+
         return view('admin.campaigns.show', [
-            'campaign' => $campaign->load('sender'),
-            'sends' => $campaign->sends()->with('user')->latest()->paginate(30),
+            'campaign' => $campaign,
+            'sends' => $sends,
         ]);
+    }
+
+    /**
+     * "Relancer" une campagne restée "en attente" (section 15) : remet en file les envois
+     * jamais traités. Un envoi reste bloqué ainsi lorsqu'aucun worker de file (`php artisan
+     * queue:work`) n'a tourné entre sa mise en file et maintenant — SendCampaignEmailJob lui-même
+     * est idempotent (il ignore un CampaignSend qui n'est plus PENDING), donc relancer une
+     * campagne déjà entièrement traitée ne duplique rien, ça ne fait juste rien.
+     */
+    public function retry(Campaign $campaign): RedirectResponse
+    {
+        $this->authorize('create', Campaign::class);
+
+        $pendingIds = $campaign->sends()->where('status', CampaignSend::PENDING)->pluck('id');
+
+        if ($pendingIds->isEmpty()) {
+            return back()->with('status', 'Aucun envoi en attente pour cette campagne — rien à relancer.');
+        }
+
+        foreach ($pendingIds as $sendId) {
+            SendCampaignEmailJob::dispatch($sendId);
+        }
+
+        return back()->with('status', $pendingIds->count().' envoi(s) remis en file.');
     }
 
     /**

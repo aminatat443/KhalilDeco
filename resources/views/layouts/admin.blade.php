@@ -425,6 +425,7 @@
             phone: null,
             shareOpen: false,
             copied: false,
+            autoPrint: false,
             waLink() {
                 const digits = (this.phone || '').replace(/[^\d]/g, '');
                 if (! digits) return null;
@@ -442,7 +443,7 @@
             },
         }"
         x-init="$watch('open', (value) => window.__nestedOverlayOpen = value)"
-        x-on:open-invoice-preview.window="open = true; loading = true; shareOpen = false; label = $event.detail.label; url = $event.detail.url; phone = $event.detail.phone ?? null; setTimeout(() => loading = false, 1200)"
+        x-on:open-invoice-preview.window="open = true; loading = true; shareOpen = false; label = $event.detail.label; url = $event.detail.url; phone = $event.detail.phone ?? null; autoPrint = $event.detail.autoPrint ?? false; setTimeout(() => loading = false, 1200)"
         x-on:keydown.escape.window="open = false"
         x-show="open"
         x-cloak
@@ -490,6 +491,9 @@
                             </button>
                         </div>
                     </div>
+                    <button type="button" @click="$refs.invoiceFrame.contentWindow.print()" class="flex h-8 w-8 items-center justify-center text-grey/60 transition hover:text-primary dark:text-white/50" title="Imprimer" aria-label="Imprimer">
+                        <i class="fa-solid fa-print text-sm"></i>
+                    </button>
                     <a :href="url" target="_blank" class="flex h-8 w-8 items-center justify-center text-grey/60 transition hover:text-primary dark:text-white/50" title="Ouvrir dans un nouvel onglet" aria-label="Ouvrir dans un nouvel onglet">
                         <i class="fa-solid fa-arrow-up-right-from-square text-sm"></i>
                     </a>
@@ -509,7 +513,7 @@
                     <i class="fa-solid fa-circle-notch fa-spin text-2xl text-primary"></i>
                 </div>
                 <template x-if="open">
-                    <iframe :src="url" @load="loading = false" class="h-full w-full border-0"></iframe>
+                    <iframe x-ref="invoiceFrame" :src="url" @load="loading = false; if (autoPrint) { autoPrint = false; $refs.invoiceFrame.contentWindow.print(); }" class="h-full w-full border-0"></iframe>
                 </template>
             </div>
         </div>

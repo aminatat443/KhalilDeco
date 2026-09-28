@@ -279,6 +279,7 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'staff'])->group(fun
     Route::get('campagnes/segments/{segment}', [AdminCustomerSegmentController::class, 'show'])->name('segments.show');
     // Route "show" en dernier : {campaign} matcherait sinon les segments littéraux ci-dessus (apercu, test, produits...).
     Route::get('campagnes/{campaign}', [AdminCampaignController::class, 'show'])->name('campaigns.show');
+    Route::post('campagnes/{campaign}/relancer', [AdminCampaignController::class, 'retry'])->name('campaigns.retry');
 
     Route::get('securite', [AdminSecurityController::class, 'index'])->name('security.index');
     Route::post('securite/bloquer', [AdminSecurityController::class, 'block'])->name('security.block');

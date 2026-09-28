@@ -26,7 +26,32 @@
         </div>
     @endif
 
-    <div class="mt-4 overflow-x-auto bg-white border border-secondary-shade/10 dark:bg-[#16201f] dark:border-white/10 print:border-secondary-shade/30">
+    {{-- Cartes en dessous de lg, tableau au-delà — même bascule que products/orders. Les
+         colonnes sont dynamiques selon le rapport choisi, donc chaque cellule est associée au
+         libellé de sa colonne par position ($report['columns'][$i]) plutôt qu'un gabarit fixe.
+         `print:hidden`/`print:block` forcent le tableau à l'impression quel que soit la largeur
+         de page évaluée par le navigateur (peut être sous le seuil lg en aperçu d'impression). --}}
+    <div class="mt-4 space-y-2 lg:hidden print:hidden">
+        @forelse($report['rows'] as $row)
+            <div class="border border-secondary-shade/10 bg-white p-3 dark:border-white/10 dark:bg-[#16201f]">
+                <dl class="space-y-1.5 text-xs">
+                    @foreach($row as $i => $cell)
+                        <div class="flex items-center justify-between gap-3">
+                            <dt class="text-grey/60 dark:text-white/30">{{ $report['columns'][$i] ?? '' }}</dt>
+                            <dd class="truncate text-right text-secondary-shade dark:text-white">{{ $cell }}</dd>
+                        </div>
+                    @endforeach
+                </dl>
+            </div>
+        @empty
+            <div class="flex flex-col items-center gap-3 border border-secondary-shade/10 bg-white px-4 py-14 text-center dark:border-white/10 dark:bg-[#16201f]">
+                <span class="flex h-11 w-11 items-center justify-center border border-secondary-shade/10 text-grey/50 dark:border-white/10 dark:text-white/30"><i class="fa-solid fa-file-lines"></i></span>
+                <p class="text-sm text-grey dark:text-white/40">Aucune donnée disponible pour cette période.</p>
+            </div>
+        @endforelse
+    </div>
+
+    <div class="mt-4 hidden overflow-x-auto bg-white border border-secondary-shade/10 dark:bg-[#16201f] dark:border-white/10 lg:block print:block print:border-secondary-shade/30">
         <table class="w-full text-sm">
             <thead>
                 <tr class="border-b border-secondary-shade/10 text-left text-xs uppercase tracking-[0.1em] text-grey dark:border-white/10 dark:text-white/40 print:text-secondary-shade">

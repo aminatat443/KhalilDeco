@@ -6,8 +6,17 @@
 
 <a href="{{ route('admin.campaigns.index') }}" class="text-xs text-grey hover:text-primary dark:text-white/40"><i class="fa-solid fa-arrow-left mr-1"></i>Campagnes</a>
 
-<h1 class="mt-3 text-2xl font-semibold text-secondary-shade dark:text-white">Segments clients</h1>
-<p class="mt-1 max-w-2xl text-sm text-grey dark:text-white/50">Calculés en direct à partir des abonnés newsletter réellement liés à un compte et de leur historique de commandes. Cliquez sur un segment pour voir les clients concernés.</p>
+<div class="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+    <div>
+        <h1 class="text-2xl font-semibold text-secondary-shade dark:text-white">Segments clients</h1>
+        <p class="mt-1 max-w-2xl text-sm text-grey dark:text-white/50">Calculés en direct à partir des abonnés newsletter réellement liés à un compte et de leur historique de commandes. Cliquez sur un segment pour voir les clients concernés.</p>
+    </div>
+    @can('create', App\Models\Campaign::class)
+        <a href="{{ route('admin.campaigns.create') }}" class="block shrink-0 bg-primary px-6 py-3 text-center text-xs font-semibold uppercase tracking-[0.15em] text-white shadow-sm transition hover:bg-primary-shade hover:shadow-md sm:inline-block">
+            <i class="fa-solid fa-paper-plane mr-1.5"></i>Créer une campagne
+        </a>
+    @endcan
+</div>
 
 <div class="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
     @foreach($segments as $key => $label)
@@ -47,11 +56,5 @@
         </div>
     </div>
 </div>
-
-@can('create', App\Models\Campaign::class)
-    <a href="{{ route('admin.campaigns.create') }}" class="mt-8 inline-flex items-center gap-2 bg-primary px-6 py-3 text-xs font-semibold uppercase tracking-[0.15em] text-white shadow-sm transition hover:bg-primary-shade">
-        <i class="fa-solid fa-paper-plane"></i>Créer une campagne
-    </a>
-@endcan
 
 @endsection

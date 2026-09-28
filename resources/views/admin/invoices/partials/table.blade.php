@@ -8,7 +8,12 @@
         <div @click="window.dispatchEvent(new CustomEvent('open-invoice-preview', { detail: { url: '{{ $order->invoiceUrl() }}', label: '{{ $order->order_number }}', phone: '{{ $order->customer_phone }}' } }))" class="cursor-pointer bg-white p-4 border border-secondary-shade/10 dark:bg-[#16201f] dark:border-white/10">
             <div class="flex items-center justify-between gap-3">
                 <span class="font-medium text-secondary-shade dark:text-white">{{ $order->order_number }}</span>
-                <span class="shrink-0 text-xs font-semibold uppercase tracking-[0.1em] text-secondary-shade dark:text-white/70"><i class="fa-solid fa-file-invoice mr-1"></i>Voir</span>
+                <span class="flex shrink-0 items-center gap-3">
+                    <button type="button" @click.stop="window.dispatchEvent(new CustomEvent('open-invoice-preview', { detail: { url: '{{ $order->invoiceUrl() }}', label: '{{ $order->order_number }}', phone: '{{ $order->customer_phone }}', autoPrint: true } }))" title="Imprimer" aria-label="Imprimer" class="text-secondary-shade hover:text-primary dark:text-white/70">
+                        <i class="fa-solid fa-print"></i>
+                    </button>
+                    <span class="text-xs font-semibold uppercase tracking-[0.1em] text-secondary-shade dark:text-white/70"><i class="fa-solid fa-file-invoice mr-1"></i>Voir</span>
+                </span>
             </div>
             <dl class="mt-3 grid grid-cols-2 gap-x-4 gap-y-2.5 border-t border-secondary-shade/10 pt-3 text-xs dark:border-white/10">
                 <div>
@@ -55,6 +60,9 @@
                     <td class="px-6 py-4 text-grey dark:text-white/50">{{ $order->paymentMethodLabel() }}</td>
                     <td class="whitespace-nowrap px-6 py-4 text-secondary-shade dark:text-white">{{ number_format($order->total, 0, ',', ' ') }} FCFA</td>
                     <td class="px-6 py-4 text-right">
+                        <button type="button" @click="window.dispatchEvent(new CustomEvent('open-invoice-preview', { detail: { url: '{{ $order->invoiceUrl() }}', label: '{{ $order->order_number }}', phone: '{{ $order->customer_phone }}', autoPrint: true } }))" title="Imprimer" aria-label="Imprimer" class="mr-4 text-secondary-shade hover:text-primary dark:text-white/70">
+                            <i class="fa-solid fa-print"></i>
+                        </button>
                         <button type="button" @click="window.dispatchEvent(new CustomEvent('open-invoice-preview', { detail: { url: '{{ $order->invoiceUrl() }}', label: '{{ $order->order_number }}', phone: '{{ $order->customer_phone }}' } }))" class="text-xs font-semibold uppercase tracking-[0.1em] text-secondary-shade hover:text-primary dark:text-white/70">
                             <i class="fa-solid fa-file-invoice mr-1"></i>Voir
                         </button>
