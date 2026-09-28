@@ -49,6 +49,14 @@ return [
             'local_domain' => env('MAIL_EHLO_DOMAIN', parse_url((string) env('APP_URL', 'http://localhost'), PHP_URL_HOST)),
         ],
 
+        // API HTTPS de Brevo plutôt que le SMTP ci-dessus — voir AppServiceProvider::boot()
+        // pour l'enregistrement du transport, et la clé API (différente du mot de passe SMTP)
+        // dans Brevo → Paramètres → Clés API. Activé en mettant MAIL_MAILER=brevo.
+        'brevo' => [
+            'transport' => 'brevo',
+            'key' => env('BREVO_API_KEY'),
+        ],
+
         'ses' => [
             'transport' => 'ses',
         ],

@@ -7,8 +7,11 @@ use App\Models\Favorite;
 use App\Services\CartService;
 use Illuminate\Auth\Events\Login;
 use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
+use Symfony\Component\Mailer\Bridge\Brevo\Transport\BrevoTransportFactory;
+use Symfony\Component\Mailer\Transport\Dsn;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -25,6 +28,16 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Transport Brevo par API HTTPS plutôt que par SMTP (voir config/mail.php, mailer
+        // "brevo") — certains hébergeurs (dont Render) bloquent ou perturbent les connexions
+        // SMTP sortantes (port 587), jamais les appels HTTPS. Ce mailer n'est utilisé que si
+        // MAIL_MAILER=brevo ; le mailer "smtp" existant reste disponible tel quel.
+        Mail::extend('brevo', function (array $config) {
+            return (new BrevoTransportFactory())->create(
+                new Dsn('brevo+api', 'default', $config['key'] ?? null)
+            );
+        });
+
         // Horodatage de connexion (back-office "Utilisateurs") — couvre les trois parcours de
         // connexion (email/mot de passe, Google, lien de vérification) sans dupliquer la logique
         // dans chaque contrôleur, puisque Laravel déclenche cet événement dans les trois cas.

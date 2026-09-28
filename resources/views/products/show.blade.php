@@ -211,6 +211,31 @@
                 <p class="mt-6 max-w-md text-sm leading-6 text-grey">{{ $product->description }}</p>
             @endif
 
+            {{-- Fiche technique / mode d'utilisation — volets dépliables, chacun affiché
+                 seulement s'il a été renseigné dans l'admin. --}}
+            @if($product->specifications || $product->usage_instructions)
+                <div class="mt-6 max-w-md divide-y divide-secondary-shade/10 border-y border-secondary-shade/10">
+                    @if($product->specifications)
+                        <details class="group py-4">
+                            <summary class="flex cursor-pointer list-none items-center justify-between text-xs font-semibold uppercase tracking-[0.2em] text-secondary-shade [&::-webkit-details-marker]:hidden">
+                                Fiche technique
+                                <i class="fa-solid fa-chevron-down text-[10px] text-grey transition group-open:rotate-180"></i>
+                            </summary>
+                            <p class="mt-3 whitespace-pre-line text-sm leading-6 text-grey">{{ $product->specifications }}</p>
+                        </details>
+                    @endif
+                    @if($product->usage_instructions)
+                        <details class="group py-4">
+                            <summary class="flex cursor-pointer list-none items-center justify-between text-xs font-semibold uppercase tracking-[0.2em] text-secondary-shade [&::-webkit-details-marker]:hidden">
+                                Mode d'utilisation
+                                <i class="fa-solid fa-chevron-down text-[10px] text-grey transition group-open:rotate-180"></i>
+                            </summary>
+                            <p class="mt-3 whitespace-pre-line text-sm leading-6 text-grey">{{ $product->usage_instructions }}</p>
+                        </details>
+                    @endif
+                </div>
+            @endif
+
             {{-- L'équipe n'a pas de panier côté boutique (voir header.blade.php, icône panier
                  remplacée par le raccourci back-office) — le bouton reste visible et cliquable
                  pour elle (cohérence visuelle), mais l'ajout au panier ne se déclenche pas. --}}
@@ -221,34 +246,39 @@
                 @csrf
                 <input type="hidden" name="product_id" value="{{ $product->id }}">
 
-                @if($hasVariantImages)
-                    <p class="-mb-5 text-xs text-grey/70">
-                        <i class="fa-regular fa-image mr-1"></i>Cliquez sur une caractéristique pour voir ses photos.
-                    </p>
-                @endif
+                {{-- Regroupés dans leur propre conteneur espacé (space-y-4) plutôt que de
+                     s'appuyer sur le rythme du formulaire parent (space-y-8) avec une marge
+                     négative — plus robuste, ne dépend d'aucun calcul de fusion de marges. --}}
+                <div class="space-y-4">
+                    @if($hasVariantImages)
+                        <p class="text-xs text-grey/70">
+                            <i class="fa-regular fa-image mr-1"></i>Cliquez sur une caractéristique pour voir ses photos.
+                        </p>
+                    @endif
 
-                {{-- Attributs de variante (couleur, puissance, longueur...) — dynamiques selon la
-                     catégorie du produit (sections 27-28 du cahier des charges) --}}
-                <template x-for="attribute in attributes" :key="attribute.id">
-                    <div>
-                        <p class="mb-3 text-xs font-semibold uppercase tracking-[0.2em] text-grey" x-text="attribute.name"></p>
-                        <div class="flex flex-wrap gap-3">
-                            <template x-for="value in attribute.values" :key="value.id">
-                                <button
-                                    type="button"
-                                    x-show="! availableValueIds(attribute.id) || availableValueIds(attribute.id).includes(value.id)"
-                                    @click="toggleValue(attribute.id, value.id)"
-                                    :class="attribute.type === 'color'
-                                        ? ['h-9 w-9 rounded-full', selected[attribute.id] === value.id ? 'ring-1 ring-offset-2 ring-secondary-shade' : 'ring-1 ring-secondary-shade/15']
-                                        : ['border px-4 py-2 text-sm', selected[attribute.id] === value.id ? 'border-secondary-shade text-secondary-shade' : 'border-secondary-shade/15 text-secondary-shade hover:border-secondary-shade/40']"
-                                    :style="attribute.type === 'color' ? `background-color: ${value.colorCode}` : ''"
-                                    :title="value.value"
-                                    x-text="attribute.type === 'color' ? '' : value.value"
-                                ></button>
-                            </template>
+                    {{-- Attributs de variante (couleur, puissance, longueur...) — dynamiques
+                         selon la catégorie du produit (sections 27-28 du cahier des charges) --}}
+                    <template x-for="attribute in attributes" :key="attribute.id">
+                        <div>
+                            <p class="mb-3 text-xs font-semibold uppercase tracking-[0.2em] text-grey" x-text="attribute.name"></p>
+                            <div class="flex flex-wrap gap-3">
+                                <template x-for="value in attribute.values" :key="value.id">
+                                    <button
+                                        type="button"
+                                        x-show="! availableValueIds(attribute.id) || availableValueIds(attribute.id).includes(value.id)"
+                                        @click="toggleValue(attribute.id, value.id)"
+                                        :class="attribute.type === 'color'
+                                            ? ['h-9 w-9 rounded-full', selected[attribute.id] === value.id ? 'ring-1 ring-offset-2 ring-secondary-shade' : 'ring-1 ring-secondary-shade/15']
+                                            : ['border px-4 py-2 text-sm', selected[attribute.id] === value.id ? 'border-secondary-shade text-secondary-shade' : 'border-secondary-shade/15 text-secondary-shade hover:border-secondary-shade/40']"
+                                        :style="attribute.type === 'color' ? `background-color: ${value.colorCode}` : ''"
+                                        :title="value.value"
+                                        x-text="attribute.type === 'color' ? '' : value.value"
+                                    ></button>
+                                </template>
+                            </div>
                         </div>
-                    </div>
-                </template>
+                    </template>
+                </div>
 
                 <input type="hidden" name="variant_id" :value="selectedVariant ? selectedVariant.id : ''">
 

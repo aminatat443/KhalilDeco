@@ -11,6 +11,7 @@ use App\Models\Size;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
@@ -75,13 +76,33 @@ class ProductController extends Controller
 
         $product = Product::create([
             'category_id' => $category->id,
-            'name' => 'Nouveau produit',
-            'slug' => $this->uniqueSlug('Nouveau produit'),
+            'name' => Product::DRAFT_NAME,
+            'slug' => $this->uniqueSlug(Product::DRAFT_NAME),
             'price' => 0,
             'is_active' => false,
         ]);
 
         return redirect()->route('admin.products.edit', $product);
+    }
+
+    /**
+     * Filet de sécurité pour le brouillon "Nouveau produit" (voir create() et
+     * Product::isPristineDraft()) : appelé au déchargement de la page d'édition (pagehide, voir
+     * le script en fin de admin.products.form) via navigator.sendBeacon — supprime le brouillon
+     * s'il est resté vierge, pour ne pas polluer le catalogue chaque fois que l'admin ouvre
+     * "Nouveau produit" puis ferme sans rien saisir.
+     *
+     * sendBeacon ne permet pas d'envoyer un en-tête CSRF personnalisé, cette route est donc
+     * exemptée de la vérification CSRF (voir bootstrap/app.php) — sans risque, l'opération ne
+     * fait rien de plus que supprimer un brouillon déjà vide et jamais modifié.
+     */
+    public function discardIfPristine(Product $product): Response
+    {
+        if (auth()->check() && auth()->user()->can('update', $product) && $product->isPristineDraft()) {
+            $product->delete();
+        }
+
+        return response()->noContent();
     }
 
     public function store(Request $request): RedirectResponse
@@ -264,6 +285,8 @@ class ProductController extends Controller
             'category_id' => ['required', 'integer', 'exists:categories,id'],
             'name' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
+            'specifications' => ['nullable', 'string'],
+            'usage_instructions' => ['nullable', 'string'],
             'model' => ['nullable', 'string', 'max:255'],
             'material' => ['nullable', 'string', 'max:255'],
             'price' => ['required', 'integer', 'min:0'],

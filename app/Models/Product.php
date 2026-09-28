@@ -10,11 +10,19 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Product extends Model
 {
+    /**
+     * Nom donné au brouillon créé par Admin\ProductController::create() — utilisé aussi par
+     * isPristineDraft() pour repérer un brouillon jamais retouché (voir sa docblock).
+     */
+    public const DRAFT_NAME = 'Nouveau produit';
+
     protected $fillable = [
         'category_id',
         'name',
         'slug',
         'description',
+        'specifications',
+        'usage_instructions',
         'model',
         'price',
         'old_price',
@@ -61,6 +69,27 @@ class Product extends Model
     public function reviews(): HasMany
     {
         return $this->hasMany(Review::class);
+    }
+
+    /**
+     * "Nouveau produit" crée immédiatement un brouillon en base (voir Admin\ProductController
+     * ::create()) pour réutiliser tout de suite le même écran d'édition que la modification
+     * d'un produit existant — mais si l'admin ferme sans avoir rien renseigné, ce brouillon
+     * resterait indéfiniment dans le catalogue (inactif, mais visible dans la liste). Un
+     * brouillon est "vierge" tant qu'aucun champ, aucune photo et aucune variante n'a été
+     * ajouté — dès qu'une seule de ces choses change, il devient un vrai produit à conserver.
+     */
+    public function isPristineDraft(): bool
+    {
+        return $this->name === self::DRAFT_NAME
+            && $this->price === 0
+            && blank($this->description)
+            && blank($this->specifications)
+            && blank($this->usage_instructions)
+            && blank($this->model)
+            && blank($this->material)
+            && $this->images()->count() === 0
+            && $this->variants()->count() === 0;
     }
 
     /**

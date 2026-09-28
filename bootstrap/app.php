@@ -39,7 +39,12 @@ return Application::configure(basePath: dirname(__DIR__))
         // possible, ce ne sont pas des navigateurs qui appellent ces routes. L'authenticité de
         // chacune est vérifiée autrement (signature HMAC pour PayTech et Wave, vérification
         // active auprès d'Orange Money/PayDunya — voir les services correspondants).
-        $middleware->validateCsrfTokens(except: ['payment/ipn', 'payment/wave/webhook', 'payment/orange-money/notif', 'payment/paydunya/callback']);
+        // admin/products/*/discard-if-pristine : appelée via navigator.sendBeacon quand l'admin
+        // quitte un brouillon "Nouveau produit" jamais retouché (voir Admin\ProductController
+        // ::discardIfPristine()) — sendBeacon ne permet pas d'en-tête personnalisé, donc pas de
+        // jeton CSRF possible. Sans risque : l'action ne fait que supprimer un brouillon déjà
+        // vide et jamais modifié, jamais un produit réel.
+        $middleware->validateCsrfTokens(except: ['payment/ipn', 'payment/wave/webhook', 'payment/orange-money/notif', 'payment/paydunya/callback', 'admin/products/*/discard-if-pristine']);
 
         // Pas de page de connexion dédiée (fenêtre flottante uniquement) — un invité qui tente
         // d'accéder à une page protégée est renvoyé à l'accueil avec la modale de connexion ouverte.

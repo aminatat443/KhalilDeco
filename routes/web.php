@@ -156,6 +156,9 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'staff'])->group(fun
     // "Créer" démarre immédiatement un brouillon en base (voir ProductController::create) —
     // une action d'écriture n'a pas sa place derrière une requête GET.
     Route::post('products/create', [AdminProductController::class, 'create'])->name('products.create');
+    // Voir la docblock de discardIfPristine() — appelée via navigator.sendBeacon, donc exemptée
+    // de CSRF dans bootstrap/app.php (sendBeacon ne permet pas d'en-tête personnalisé).
+    Route::post('products/{product}/discard-if-pristine', [AdminProductController::class, 'discardIfPristine'])->name('products.discard-if-pristine');
     Route::post('products/{product}/toggle/{flag}', [AdminProductController::class, 'toggleFlag'])->name('products.toggle');
     Route::post('products/{product}/promo', [AdminProductController::class, 'setPromo'])->name('products.promo');
     Route::post('products/{product}/images', [AdminProductImageController::class, 'store'])->name('products.images.store');

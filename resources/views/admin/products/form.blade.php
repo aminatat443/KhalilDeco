@@ -2,7 +2,7 @@
 
 @php($modalBack = route('admin.products.index'))
 
-@php($isDraft = $product->name === 'Nouveau produit')
+@php($isDraft = $product->name === \App\Models\Product::DRAFT_NAME)
 
 @section('title', $isDraft ? 'Nouveau produit' : 'Modifier le produit')
 
@@ -141,6 +141,18 @@
         <div class="sm:col-span-2">
             <label class="mb-1.5 block text-xs font-semibold uppercase tracking-[0.15em] text-secondary-shade dark:text-white/70">Description</label>
             <textarea name="description" rows="4" @blur="saveForm($event.target.form)" class="w-full border border-secondary-shade/15 bg-white px-3.5 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/15 dark:border-white/10 dark:bg-white/5 dark:text-white">{{ old('description', $product->description) }}</textarea>
+        </div>
+
+        <div class="sm:col-span-2">
+            <label class="mb-1.5 block text-xs font-semibold uppercase tracking-[0.15em] text-secondary-shade dark:text-white/70">Fiche technique (optionnel)</label>
+            <textarea name="specifications" rows="4" @blur="saveForm($event.target.form)" placeholder="Dimensions, matière, puissance, poids…" class="w-full border border-secondary-shade/15 bg-white px-3.5 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/15 dark:border-white/10 dark:bg-white/5 dark:text-white">{{ old('specifications', $product->specifications) }}</textarea>
+            <p class="mt-1 text-[11px] text-grey dark:text-white/40">Affichée dans un volet dépliable sur la fiche produit, uniquement si renseignée.</p>
+        </div>
+
+        <div class="sm:col-span-2">
+            <label class="mb-1.5 block text-xs font-semibold uppercase tracking-[0.15em] text-secondary-shade dark:text-white/70">Mode d'utilisation (optionnel)</label>
+            <textarea name="usage_instructions" rows="4" @blur="saveForm($event.target.form)" placeholder="Étapes d'installation, précautions d'usage…" class="w-full border border-secondary-shade/15 bg-white px-3.5 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/15 dark:border-white/10 dark:bg-white/5 dark:text-white">{{ old('usage_instructions', $product->usage_instructions) }}</textarea>
+            <p class="mt-1 text-[11px] text-grey dark:text-white/40">Affichée dans un volet dépliable sur la fiche produit, uniquement si renseignée.</p>
         </div>
     </div>
 
@@ -450,5 +462,20 @@
             </form>
         @endif
     </div>
+
+@if($isDraft)
+    <script>
+        // Filet de sécurité pour "Nouveau produit" (voir Admin\ProductController::create() et
+        // Product::isPristineDraft()) : si l'admin quitte cette page sans avoir rien saisi (X,
+        // Échap, retour navigateur, autre lien du menu...), le brouillon vide créé à l'ouverture
+        // est supprimé au lieu de rester indéfiniment dans le catalogue. pagehide se déclenche
+        // sur TOUTE sortie de page (contrairement à un clic sur un bouton "fermer" précis, qui
+        // n'aurait pas couvert le retour navigateur) ; sendBeacon garantit l'envoi même si la
+        // page se ferme dans le même instant.
+        window.addEventListener('pagehide', () => {
+            navigator.sendBeacon('{{ route('admin.products.discard-if-pristine', $product) }}');
+        });
+    </script>
+@endif
 
 @endsection
