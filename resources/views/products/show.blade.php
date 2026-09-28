@@ -221,6 +221,12 @@
                 @csrf
                 <input type="hidden" name="product_id" value="{{ $product->id }}">
 
+                @if($hasVariantImages)
+                    <p class="-mb-5 text-xs text-grey/70">
+                        <i class="fa-regular fa-image mr-1"></i>Cliquez sur une caractéristique pour voir ses photos.
+                    </p>
+                @endif
+
                 {{-- Attributs de variante (couleur, puissance, longueur...) — dynamiques selon la
                      catégorie du produit (sections 27-28 du cahier des charges) --}}
                 <template x-for="attribute in attributes" :key="attribute.id">
@@ -243,12 +249,6 @@
                         </div>
                     </div>
                 </template>
-
-                @if($hasVariantImages)
-                    <p class="-mt-3 text-xs text-grey/70">
-                        <i class="fa-regular fa-image mr-1"></i>Cliquez sur une caractéristique pour voir ses photos, si elle en a.
-                    </p>
-                @endif
 
                 <input type="hidden" name="variant_id" :value="selectedVariant ? selectedVariant.id : ''">
 
