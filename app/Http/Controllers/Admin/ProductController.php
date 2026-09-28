@@ -130,6 +130,10 @@ class ProductController extends Controller
             'variants.attributeValues.attribute',
         ]);
 
+        // Nombre de photos par variante — affiché sur le bouton "Photos" de chaque ligne, sans
+        // recharger les images elles-mêmes (seule la page dédiée à une variante les charge).
+        $product->variants->loadCount('images');
+
         return view('admin.products.form', [
             'product' => $product,
             'categories' => Category::whereNotNull('parent_id')->with('parent')->orderBy('name')->get(),

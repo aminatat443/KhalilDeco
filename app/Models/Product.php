@@ -47,9 +47,15 @@ class Product extends Model
         return $this->hasMany(ProductVariant::class);
     }
 
+    /**
+     * Photos génériques du produit (aucune variante) — la galerie affichée par défaut, avant
+     * toute sélection, ou pour les variantes qui n'ont pas leurs propres photos. Les photos
+     * propres à une variante exacte (ProductVariant::images()) en sont exclues : elles ne
+     * doivent jamais apparaître comme vignette/carte générique du produit.
+     */
     public function images(): HasMany
     {
-        return $this->hasMany(ProductImage::class);
+        return $this->hasMany(ProductImage::class)->whereNull('product_variant_id');
     }
 
     public function reviews(): HasMany

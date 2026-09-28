@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\AttributeValue;
 use App\Models\Product;
 use App\Models\ProductVariant;
+use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -13,6 +14,24 @@ use Illuminate\Support\Str;
 
 class ProductVariantController extends Controller
 {
+    /**
+     * Page dédiée aux photos d'une variante exacte — ouverte en modale flottante AJAX depuis la
+     * fiche produit (bouton "Photos" sur chaque ligne de variante), via le même mécanisme que
+     * "Modifier le produit" (voir x-admin-page-modal et layouts/admin-modal.blade.php).
+     */
+    public function images(Product $product, ProductVariant $variant): View
+    {
+        $this->authorize('update', $product);
+        abort_unless($variant->product_id === $product->id, 404);
+
+        $variant->load('attributeValues.attribute', 'images');
+
+        return view('admin.products.variants.images', [
+            'product' => $product,
+            'variant' => $variant,
+        ]);
+    }
+
     /**
      * Génération en masse des variantes (sections 27, 41, 45 du cahier des charges) : l'admin
      * coche plusieurs couleurs et/ou tailles, une case de stock apparaît pour chaque
@@ -94,6 +113,7 @@ class ProductVariantController extends Controller
                     'label' => $v->label(),
                     'sku' => $v->sku,
                     'stock' => $v->stock,
+                    'imagesCount' => 0, // variante tout juste créée, ne peut pas encore avoir de photos
                 ])->values(),
             ]);
         }

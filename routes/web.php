@@ -166,6 +166,14 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'staff'])->group(fun
     Route::post('products/{product}/variants', [AdminProductVariantController::class, 'store'])->name('products.variants.store');
     Route::put('products/{product}/variants/{variant}', [AdminProductVariantController::class, 'update'])->name('products.variants.update');
     Route::delete('products/{product}/variants/{variant}', [AdminProductVariantController::class, 'destroy'])->name('products.variants.destroy');
+    // Photos propres à une variante exacte — même contrôleur que les photos génériques du
+    // produit (AdminProductImageController), le paramètre {variant} supplémentaire suffit à y
+    // faire basculer store/primary/reorder/destroy (voir la doc en tête de ce contrôleur).
+    Route::get('products/{product}/variants/{variant}/images', [AdminProductVariantController::class, 'images'])->name('products.variants.images.index');
+    Route::post('products/{product}/variants/{variant}/images', [AdminProductImageController::class, 'store'])->name('products.variants.images.store');
+    Route::post('products/{product}/variants/{variant}/images/{image}/primary', [AdminProductImageController::class, 'primary'])->name('products.variants.images.primary');
+    Route::post('products/{product}/variants/{variant}/images/reorder', [AdminProductImageController::class, 'reorder'])->name('products.variants.images.reorder');
+    Route::delete('products/{product}/variants/{variant}/images/{image}', [AdminProductImageController::class, 'destroy'])->name('products.variants.images.destroy');
 
     Route::resource('categories', AdminCategoryController::class)->except('show');
 

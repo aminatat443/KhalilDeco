@@ -32,7 +32,20 @@
     <div
         x-data="{
             attributes: {{ $selectorAttributes->toJson() }},
-            variants: {{ $product->variants->map(fn ($v) => ['id' => $v->id, 'stock' => $v->stock, 'values' => $v->attributeValues->pluck('id')->values()])->toJson() }},
+            variants: {{ $product->variants->map(fn ($v) => [
+                'id' => $v->id,
+                'stock' => $v->stock,
+                'values' => $v->attributeValues->pluck('id')->values(),
+                // Photos propres à cette combinaison exacte (vide si l'admin n'en a pas
+                // téléversé pour cette variante) — voir activeImages() plus bas, qui bascule
+                // dessus dès que le client sélectionne cette variante, et revient sinon à la
+                // galerie générique du produit.
+                'images' => $v->images->map(fn ($img) => [
+                    'main' => img_url($img->url, 800, 560),
+                    'thumb' => img_url($img->url, 160, 160),
+                    'alt' => $img->alt ?? $product->name,
+                ])->values(),
+            ])->toJson() }},
             productStock: {{ $product->stock }},
             selected: {},
             get hasStock() {
@@ -67,17 +80,24 @@
                     .flatMap(v => v.values);
             },
             images: {{ $galleryImages->toJson() }},
+            // Bascule automatique sur les photos de la variante sélectionnée dès qu'elle en a —
+            // sinon (variante sans photos propres, ou aucune sélection) la galerie générique du
+            // produit reste affichée.
+            get activeImages() {
+                return this.selectedVariant?.images?.length ? this.selectedVariant.images : this.images;
+            },
             active: 0,
             lightbox: false,
-            next() { this.active = (this.active + 1) % this.images.length },
-            prev() { this.active = (this.active - 1 + this.images.length) % this.images.length },
+            next() { this.active = (this.active + 1) % this.activeImages.length },
+            prev() { this.active = (this.active - 1 + this.activeImages.length) % this.activeImages.length },
         }"
+        x-init="$watch('selectedVariant', () => active = 0)"
         class="grid gap-20 md:grid-cols-2"
     >
         {{-- Galerie (sections 25-26) --}}
         <div class="space-y-3">
             <div class="group relative aspect-[10/7] overflow-hidden bg-grey-tint">
-                <template x-for="(img, i) in images" :key="i">
+                <template x-for="(img, i) in activeImages" :key="i">
                     <img
                         x-show="active === i"
                         :src="img.main"
@@ -87,7 +107,7 @@
                     >
                 </template>
 
-                <template x-if="images.length > 1">
+                <template x-if="activeImages.length > 1">
                     <div>
                         <button
                             type="button"
@@ -109,20 +129,21 @@
                 </template>
             </div>
 
-            @if($product->images->count() > 1)
-                <div class="grid grid-cols-4 gap-3">
-                    <template x-for="(img, i) in images" :key="i">
-                        <button
-                            type="button"
-                            @click="active = i"
-                            :class="active === i ? 'ring-2 ring-primary' : 'opacity-70 hover:opacity-100'"
-                            class="aspect-square overflow-hidden bg-grey-tint transition"
-                        >
-                            <img :src="img.thumb" :alt="img.alt" class="h-full w-full object-cover">
-                        </button>
-                    </template>
-                </div>
-            @endif
+            {{-- Nombre de vignettes variable selon la sélection (galerie générique ou photos
+                 d'une variante) — condition réactive côté client (x-show), pas un @if serveur
+                 figé sur le seul décompte de la galerie générique. --}}
+            <div x-show="activeImages.length > 1" class="grid grid-cols-4 gap-3">
+                <template x-for="(img, i) in activeImages" :key="i">
+                    <button
+                        type="button"
+                        @click="active = i"
+                        :class="active === i ? 'ring-2 ring-primary' : 'opacity-70 hover:opacity-100'"
+                        class="aspect-square overflow-hidden bg-grey-tint transition"
+                    >
+                        <img :src="img.thumb" :alt="img.alt" class="h-full w-full object-cover">
+                    </button>
+                </template>
+            </div>
         </div>
 
         {{-- Vue agrandie --}}
@@ -138,15 +159,15 @@
             <button type="button" @click="lightbox = false" class="absolute right-6 top-6 text-white transition hover:text-primary" aria-label="Fermer">
                 <i class="fa-solid fa-xmark text-2xl"></i>
             </button>
-            <template x-if="images.length > 1">
+            <template x-if="activeImages.length > 1">
                 <button type="button" @click.stop="prev()" class="absolute left-4 top-1/2 -translate-y-1/2 text-white transition hover:text-primary sm:left-8" aria-label="Image précédente">
                     <i class="fa-solid fa-chevron-left text-xl"></i>
                 </button>
             </template>
-            <template x-for="(img, i) in images" :key="i">
+            <template x-for="(img, i) in activeImages" :key="i">
                 <img x-show="active === i" @click.stop :src="img.main" :alt="img.alt" class="max-h-[88vh] max-w-[88vw] object-contain">
             </template>
-            <template x-if="images.length > 1">
+            <template x-if="activeImages.length > 1">
                 <button type="button" @click.stop="next()" class="absolute right-4 top-1/2 -translate-y-1/2 text-white transition hover:text-primary sm:right-8" aria-label="Image suivante">
                     <i class="fa-solid fa-chevron-right text-xl"></i>
                 </button>

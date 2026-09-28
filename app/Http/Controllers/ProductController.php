@@ -24,6 +24,7 @@ class ProductController extends Controller
         $product->load([
             'images' => fn ($q) => $q->orderBy('sort_order'),
             'variants.attributeValues.attribute',
+            'variants.images' => fn ($q) => $q->orderBy('sort_order'),
             'category',
         ]);
 
